@@ -1,42 +1,133 @@
-# sv
+# Broaden Labs
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+The Broaden Labs website. SvelteKit 3 preview, Svelte 5, PostgreSQL, no CSS
+framework.
 
-## Creating a project
+> **This targets a SvelteKit 3 PRERELEASE.** `@sveltejs/kit` is pinned to an
+> exact `3.0.0-next.16` and must stay pinned — unmerged branches upstream
+> suggest the remote-form API may still rename `submitted`, `withOverride` and
+> `updates` before 3.0.0 final. Read `node_modules/@sveltejs/kit/types/index.d.ts`
+> for API truth: **svelte.dev and the Svelte MCP still serve SvelteKit 2 docs**,
+> and several of their examples throw in Kit 3.
 
-If you're seeing this, you've probably already done this step. Congrats!
+## Prerequisites
 
-```sh
-# create a new project
-npx sv create my-app
-```
+- **Node ≥ 22.17** (Kit 3 requires it)
+- **pnpm** — npm, yarn and bun are not supported here
+- **PostgreSQL** running locally
 
-To recreate this project with the same configuration:
-
-```sh
-# recreate this project
-pnpm dlx sv@0.17.0 create --template minimal --types ts --add prettier eslint vitest="usages:unit,component" playwright sveltekit-adapter="adapter:vercel" drizzle="database:postgresql+postgresql:neon" mdsvex ai-tools="ide:claude-code,vscode+delivery:plugin+tools:mcp,svelte-code-writer,svelte-core-bestpractices,svelte-file-editor+mcpSetup:local" experimental="versions:kit+features:async,remoteFunctions,explicitEnvironmentVariables,handleRenderingErrors,forkPreloads" --install pnpm broaden-labs
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## Setup
 
 ```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+pnpm install
+cp .env.example .env          # defaults point at a local Postgres
+createdb broaden_labs
+pnpm db:migrate
+pnpm dev
 ```
 
-## Building
+## Commands
 
-To create a production version of your app:
+| Command                                         | What it does                                                |
+| ----------------------------------------------- | ----------------------------------------------------------- |
+| `pnpm dev`                                      | Dev server                                                  |
+| `pnpm build` / `pnpm preview`                   | Production build and preview                                |
+| `pnpm check`                                    | `svelte-check` under 8 strict TypeScript flags              |
+| `pnpm lint` / `pnpm format`                     | Prettier + ESLint                                           |
+| `pnpm test:unit`                                | Unit and integration tests (integration needs the database) |
+| `pnpm test:e2e`                                 | Playwright, across 7 projects                               |
+| `pnpm db:generate` / `db:migrate` / `db:studio` | Drizzle                                                     |
+| `pnpm fonts:build`                              | Re-subset the webfonts (needs `fonttools` + `brotli`)       |
+| `pnpm og:build`                                 | Re-render the social images                                 |
+
+`pnpm test:e2e` always rebuilds — the Playwright `webServer` command is
+`build && preview` and `reuseExistingServer` is off, because reusing a running
+server silently tests a stale bundle.
+
+## Demo content safety
+
+Every case study, testimonial and team profile on this site is **fictional**, is
+labelled as such on the page, and carries `isDemo: true`.
+
+A Vite plugin **fails the production build** while any of them is enabled:
 
 ```sh
-npm run build
+PUBLIC_SITE_ENV=production pnpm build   # exits 1, naming all 13 records
 ```
 
-You can preview the production build with `npm run preview`.
+Set `BROADEN_CONTENT_READY=1` only once every one has been replaced with real,
+verified content. Inventing _data_ is allowed; inventing _functionality_ or
+_credentials_ is not.
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+## Architecture
+
+- **`src/lib/styles/`** — hand-written CSS in cascade layers. No Tailwind, no
+  utility framework. Colour tokens are enforced against WCAG 2.2 AA by
+  `contrast.spec.ts`, which parses the values out of the stylesheet so a copy
+  cannot drift.
+- **`src/lib/content/`** — typed content. AUTHORED content (services, insights,
+  process) is separate at the type level from CREDENTIAL content (case studies,
+  testimonials, team), which requires `isDemo`.
+- **`src/lib/animation/`** — GSAP. `{@attach}` is the ONE lifecycle primitive:
+  its teardown fires both before a re-run and on element removal, which is
+  exactly `ctx.revert()`'s contract. `gsap.context()` only adopts triggers
+  created _synchronously_, so anything created in a promise must be killed by
+  hand — that caused a real leak, and `motion.e2e.ts` exists to catch it.
+- **`src/lib/components/three/`** — Threlte. The tier starts at `fallback` and
+  only upgrades on the client, which is what makes it SSR-safe with no `browser`
+  guard. three.js is dynamically imported and stays out of the initial payload.
+  Force a tier by hand with `?tier=rich|medium|still|fallback`.
+- **`src/routes/**/*.remote.ts`** — remote functions. These may NOT live under
+  `src/lib/server/`: Kit 3 treats any `/server/` path segment as server-only and
+  rejects remote modules there.
+
+## Fonts
+
+Bricolage Grotesque, Instrument Sans and JetBrains Mono — all SIL OFL 1.1 with
+no Reserved Font Name declared on their copyright lines, which is what makes
+subsetting and axis pinning permitted. Licences ship in `static/licenses/`.
+
+The `.woff2` files are build artifacts of `scripts/build-fonts.py`, not
+hand-placed binaries. `wdth` is pinned to 100 on the two proportional faces: the
+axis only condenses and cost 42% of Bricolage's file size on the preload path.
+
+**CLS is held at zero by explicit `line-height` on every type token plus
+preloading two latin subsets — not by the four-descriptor metric-override
+recipe.** `ascent-override`, `descent-override` and `line-gap-override` are not
+implemented in Safari at all.
+
+## Deployment
+
+Vercel, via `adapter-vercel@7`. Note it **removed the edge runtime** — everything
+is Node, which is why one `pg` driver serves both local Postgres and production.
+
+Security headers are in `vercel.json`, not the Kit config, and
+`docs/SECURITY-HEADERS.md` explains why they cannot work anywhere else.
+
+**Before launch:**
+
+1. Set `DATABASE_URL` to a pooled connection string, and `PUBLIC_ORIGIN` /
+   `PUBLIC_SITE_ENV` for the environment.
+2. Run migrations at deploy time from CI — never inside a request handler, where
+   concurrent cold starts race the migration lock.
+3. Have counsel write `/privacy`, `/terms` and `/accessibility`. They currently
+   state that no policy exists and are `noindex` and absent from the sitemap.
+4. Verify CSP against `pnpm build && pnpm preview` — **never** `pnpm dev`, which
+   strips hashes and injects `unsafe-inline` for HMR.
+5. Consider a dedicated secret for the IP hash salt; it currently derives from
+   `DATABASE_URL` (stable per environment, but a real secret is better).
+
+## Licence notes worth pre-declaring
+
+Two dependencies will flag in an SPDX scanner and both are fine to ship:
+
+- **gsap** uses a non-SPDX licence string ("Standard 'no charge' license").
+  SplitText and ScrollTrigger have been in the free package since 3.13.0.
+- **`@threlte/extras`** pulls `@threjs-kit/instanced-sprite-mesh`, which has no
+  licence field at all. It is **deliberately not installed** — `@threlte/core`
+  has zero runtime dependencies and the hero needs nothing else.
+
+## Further reading
+
+- `docs/SEO.md` — Google guidance as of 7 August 2026, with citations
+- `docs/SECURITY-HEADERS.md` — why headers live at the platform

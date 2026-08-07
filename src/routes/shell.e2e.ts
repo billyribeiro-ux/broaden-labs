@@ -252,3 +252,63 @@ test.describe('layout stability', () => {
 		});
 	}
 });
+
+/**
+ * Core Web Vitals under a constrained connection. Brief §87.
+ *
+ * This exists because the unthrottled CLS test above passed while a REAL shift
+ * was happening on a slow connection: `font-display: swap` let the display face
+ * arrive after first paint, and because size-adjust matches average character
+ * width rather than line BREAKS, the headline rewrapped and moved everything
+ * below it. Measured 0.0022 on the homepage and 0.0076 on /work before the fix.
+ *
+ * Testing only on a fast local connection is how that class of regression ships.
+ */
+test.describe('performance under a constrained connection', () => {
+	// CDP is Chromium-only; the vitals themselves are too.
+	test.skip(({ browserName }) => browserName !== 'chromium', 'CDP throttling is Chromium-only');
+
+	for (const [label, latency, throughput] of [
+		['fast', 20, (20 * 1024 * 1024) / 8],
+		['slow-3g', 300, (400 * 1024) / 8]
+	] as const) {
+		test(`${label}: CLS stays at zero and LCP stays under 2.5s`, async ({ page }) => {
+			const cdp = await page.context().newCDPSession(page);
+			await cdp.send('Network.emulateNetworkConditions', {
+				offline: false,
+				latency,
+				downloadThroughput: throughput,
+				uploadThroughput: throughput / 3
+			});
+			// 4x CPU throttle so the main thread is not unrealistically idle.
+			await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+
+			await page.goto('/', { waitUntil: 'load' });
+			await page.waitForTimeout(4500);
+
+			const vitals = await page.evaluate(
+				() =>
+					new Promise<{ lcp: number; cls: number }>((resolve) => {
+						let lcp = 0;
+						let cls = 0;
+						new PerformanceObserver((list) => {
+							for (const entry of list.getEntries()) lcp = entry.startTime;
+						}).observe({ type: 'largest-contentful-paint', buffered: true });
+						new PerformanceObserver((list) => {
+							for (const entry of list.getEntries()) {
+								const shift = entry as PerformanceEntry & {
+									value: number;
+									hadRecentInput: boolean;
+								};
+								if (!shift.hadRecentInput) cls += shift.value;
+							}
+						}).observe({ type: 'layout-shift', buffered: true });
+						requestAnimationFrame(() => setTimeout(() => resolve({ lcp, cls }), 100));
+					})
+			);
+
+			expect(vitals.cls, `CLS on ${label}`).toBe(0);
+			expect(vitals.lcp, `LCP on ${label}`).toBeLessThan(2500);
+		});
+	}
+});

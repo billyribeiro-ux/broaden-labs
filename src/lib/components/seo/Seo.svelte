@@ -134,6 +134,28 @@
 	function ld(data: unknown): string {
 		return JSON.stringify(data).replace(/</g, '\\u003c');
 	}
+
+	/**
+	 * The JSON-LD tags are assembled HERE rather than in the template.
+	 *
+	 * Two reasons. Svelte hoists a literal script element written in markup, so
+	 * the `{@html}` string is the only way to emit one — and eslint-plugin-svelte's
+	 * parser sees that literal opening tag inside a template expression and tries
+	 * to parse it as a second instance script, which is a parse error. Building
+	 * the string in the instance block leaves no tag text in the template at all.
+	 *
+	 * The parts are concatenated from a const so the opening tag never appears as
+	 * a contiguous literal that a parser could mistake for a real element.
+	 */
+	const LD_OPEN = '<' + 'script type="application/ld+json">';
+	const LD_CLOSE = '<' + '/script>';
+
+	const jsonLd = $derived(
+		[organisation, website, webPage, article, breadcrumbList]
+			.filter((graph) => graph !== null && graph !== undefined)
+			.map((graph) => `${LD_OPEN}${ld(graph)}${LD_CLOSE}`)
+			.join('')
+	);
 </script>
 
 <svelte:head>
@@ -177,13 +199,16 @@
 	<meta name="twitter:description" content={description} />
 	<meta name="twitter:image" content={socialImage} />
 
-	{@html `<script type="application/ld+json">${ld(organisation)}</script>`}
-	{@html `<script type="application/ld+json">${ld(website)}</script>`}
-	{@html `<script type="application/ld+json">${ld(webPage)}</script>`}
-	{#if article}
-		{@html `<script type="application/ld+json">${ld(article)}</script>`}
-	{/if}
-	{#if breadcrumbList}
-		{@html `<script type="application/ld+json">${ld(breadcrumbList)}</script>`}
-	{/if}
+	<!--
+		svelte/no-at-html-tags is correct in general and does not apply here.
+
+		This is the only way to emit a script element from Svelte markup, and the
+		content is not user input: every value comes from typed content modules and
+		route props, is serialised by JSON.stringify, and has each `<` escaped to
+		its unicode form — which is precisely the mitigation for the injection the
+		rule guards against. Nothing reaches this string from a request, a form or
+		a database row.
+	-->
+	<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+	{@html jsonLd}
 </svelte:head>

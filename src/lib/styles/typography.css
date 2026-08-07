@@ -29,7 +29,23 @@
 		src: url('../assets/fonts/bricolage-var-latin.woff2') format('woff2');
 		font-weight: 200 800;
 		font-style: normal;
-		font-display: swap;
+		/*
+		 * `optional`, not `swap`, on the two PRELOADED faces.
+		 *
+		 * Preloading eliminates the swap on a fast connection, but on a genuinely
+		 * slow one the face can still arrive after first paint — and because
+		 * size-adjust matches average character width and not line BREAKS, a late
+		 * arrival rewraps the headline and moves everything below it. Measured
+		 * under network throttling: CLS 0.0022 on the homepage, 0.0076 on /work.
+		 *
+		 * `optional` gives the browser a ~100ms block period and then commits to
+		 * whichever face it has for the lifetime of that page view. Combined with
+		 * the preload it almost always commits to the webfont; when it does not,
+		 * the visitor sees the metric-matched fallback and NOTHING shifts. The
+		 * cost is a rare first-visit fallback render; the alternative is a
+		 * guaranteed reflow for everyone on a slow connection.
+		 */
+		font-display: optional;
 		unicode-range:
 			U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
 			U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
@@ -52,7 +68,8 @@
 		src: url('../assets/fonts/instrument-var-latin.woff2') format('woff2');
 		font-weight: 400 700;
 		font-style: normal;
-		font-display: swap;
+		/* Preloaded and layout-defining — see the note on Bricolage above. */
+		font-display: optional;
 		unicode-range:
 			U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
 			U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
