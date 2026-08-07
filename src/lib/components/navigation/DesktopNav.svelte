@@ -40,7 +40,12 @@
 
 	a {
 		position: relative;
-		display: inline-block;
+		/* inline-flex + an explicit min-block-size, not inline-block: SC 2.5.8
+		   measures the target box, and an 18px line box with padding still
+		   reported 18px to axe on WebKit. */
+		display: inline-flex;
+		align-items: center;
+		min-block-size: 32px;
 		padding-block: var(--space-2xs);
 
 		font-size: var(--text-sm);

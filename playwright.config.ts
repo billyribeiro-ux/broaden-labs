@@ -20,7 +20,14 @@ export default defineConfig({
 	webServer: {
 		command: 'pnpm build && pnpm preview',
 		port: 4173,
-		reuseExistingServer: !process.env.CI,
+		/**
+		 * Never reuse. The command here BUILDS as well as serves, so reusing a
+		 * running server silently tests a stale bundle — which cost real time
+		 * chasing two "failures" that were fixed code the server had never seen,
+		 * and would just as easily hide a regression behind a passing run.
+		 * The build is a couple of seconds; a false result is not worth saving it.
+		 */
+		reuseExistingServer: false,
 		// A cold build plus preview is well past the 60s default.
 		timeout: 180_000
 	},

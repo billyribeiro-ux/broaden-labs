@@ -16,6 +16,12 @@
 		inset-inline-start: var(--space-sm);
 		z-index: var(--z-skip-link);
 
+		/* SC 2.5.8 Target Size (Minimum): 24x24 CSS px. Text at var(--text-sm) is
+		   18px tall, so every link in a navigational context needs the height
+		   declared rather than inherited from its line box. */
+		display: inline-flex;
+		align-items: center;
+		min-block-size: 24px;
 		padding-block: var(--space-2xs);
 		padding-inline: var(--space-sm);
 

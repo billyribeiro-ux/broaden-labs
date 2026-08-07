@@ -124,11 +124,16 @@
 
 	.columns ul {
 		display: grid;
+		/* Spacing is half of SC 2.5.8: axe measures the "safe clickable space"
+		   between neighbours, so a 24px target with an 8px gap still fails. */
 		gap: var(--space-2xs);
 		margin: 0;
 	}
 
 	.columns a {
+		display: inline-flex;
+		align-items: center;
+		min-block-size: 28px;
 		font-size: var(--text-sm);
 		text-decoration: none;
 		color: var(--text-secondary);
