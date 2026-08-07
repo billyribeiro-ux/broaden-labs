@@ -1,0 +1,74 @@
+/**
+ * Motion tokens. Brief §77.
+ *
+ * FOUR easing curves exist and no more. "Do not invent arbitrary easing curves
+ * in every component" is the whole point — a recognisable physical behaviour
+ * comes from reuse, not from tuning each interaction separately.
+ *
+ * The asymmetry rule is what makes motion read as expensive: every reversible
+ * interaction ENTERS on --ease-entrance at a slower duration and LEAVES on
+ * --ease-exit at a faster one. Symmetric motion feels mechanical.
+ */
+
+@layer tokens {
+	:root {
+		/* ── DURATION ──────────────────────────────────────────────────────── */
+		--dur-instant: 90ms; /* state flips the user already committed to */
+		--dur-fast: 180ms; /* hover in, focus, icon shift */
+		--dur-base: 320ms; /* the default: reveals, panels, filter reflow */
+		--dur-deliberate: 560ms; /* section entrances, card lifts, dialog open */
+		--dur-cinematic: 900ms; /* hero beats, surface-crossing aperture runs */
+
+		/* ── EASING ────────────────────────────────────────────────────────── */
+		--ease-entrance: cubic-bezier(0.16, 1, 0.3, 1); /* expo-out */
+		--ease-exit: cubic-bezier(0.55, 0, 1, 0.45); /* quart-in */
+		--ease-emphasis: cubic-bezier(0.65, 0, 0.35, 1); /* quart-in-out */
+		--ease-inertial: cubic-bezier(0.22, 1, 0.36, 1); /* softer expo-out */
+
+		/* Legal ONLY on a scroll scrub. A scrub is direct manipulation, and any
+		   eased scrub reads as input lag rather than as polish. */
+		--ease-linear: linear;
+
+		/* ── DISTANCE ──────────────────────────────────────────────────────── */
+		--dist-xs: 4px; /* icon nudge, arrow travel, pressed offset */
+		--dist-sm: 8px; /* underline sweep, chip settle */
+		--dist-md: 16px; /* card lift, paragraph reveal */
+		--dist-lg: 32px; /* section heading reveal, hero line mask */
+		--dist-xl: 64px; /* full-section entrance, transition plane */
+
+		/* ── STAGGER ───────────────────────────────────────────────────────── */
+		--stagger-tight: 24ms; /* split words within one hero line */
+		--stagger-base: 60ms; /* list items, capability labels */
+		--stagger-loose: 110ms; /* three cards in a row */
+	}
+
+	/**
+	 * Reduced motion collapses every duration to a value the compositor still
+	 * honours but the eye reads as instant, rather than setting them to 0.
+	 * Zero-duration transitions never fire `transitionend`, which silently
+	 * breaks any handler that waits for one.
+	 *
+	 * Distances go to 0 so nothing translates. Content, layout and every
+	 * interaction survive intact — brief §69: "Motion cannot be required to
+	 * understand content."
+	 */
+	@media (prefers-reduced-motion: reduce) {
+		:root {
+			--dur-instant: 1ms;
+			--dur-fast: 1ms;
+			--dur-base: 1ms;
+			--dur-deliberate: 1ms;
+			--dur-cinematic: 1ms;
+
+			--dist-xs: 0px;
+			--dist-sm: 0px;
+			--dist-md: 0px;
+			--dist-lg: 0px;
+			--dist-xl: 0px;
+
+			--stagger-tight: 0ms;
+			--stagger-base: 0ms;
+			--stagger-loose: 0ms;
+		}
+	}
+}

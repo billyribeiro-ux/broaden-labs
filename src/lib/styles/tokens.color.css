@@ -1,0 +1,153 @@
+/**
+ * BROADEN colour system.
+ *
+ * Every ratio in the comments was computed with the WCAG 2.x relative-luminance
+ * formula and is enforced by src/lib/styles/contrast.spec.ts — if a value is
+ * edited so a pair drops below AA, that test fails.
+ *
+ * Surface mode is declared with `data-surface`, not a class and not
+ * prefers-color-scheme. Custom properties inherit, so a card nested inside a
+ * light section resolves light tokens with zero component-level awareness. It
+ * also pairs with `color-scheme`, which gives correct native scrollbars, form
+ * controls and caret colour per section for free.
+ *
+ * Dark is :root — brief §110, "primary art direction can be dark-forward".
+ */
+
+@layer tokens {
+	:root {
+		/* ── RAW SCALE — never referenced directly by a component ──────────── */
+
+		/* Foundation, from brief §18 */
+		--obsidian: #090a0c;
+		--near-black: #111216;
+		--warm-white: #f3f1ea;
+		--soft-stone: #d8d5cc;
+		--graphite: #777a80;
+
+		/* Derived neutrals: one step either side of the two foundation anchors */
+		--ink-elevated: #1a1c21;
+		--ink-inset: #16181d;
+		--warm-raised: #faf9f4;
+		--warm-sunken: #e9e6dd;
+
+		/**
+		 * "Azurite" — the BROADEN accent, OKLCH hue 236.
+		 *
+		 * Hues 205–225 at the lightness needed to clear 4.5:1 on obsidian come out
+		 * as fluorescent cyan (#00CCE1, #00D4FF) — the "gaming-neon" §18 rules out.
+		 * 236 is a true mineral azure with no cyan and no violet cast.
+		 *
+		 * 500 (dark mode) and 750 (light mode) share the hue, so the brand reads as
+		 * one colour identity across a surface inversion rather than two blues.
+		 */
+		--azurite-100: #c9eaff;
+		--azurite-200: #a5d9f9;
+		--azurite-300: #78c5f2;
+		--azurite-400: #4eb0e5;
+		--azurite-500: #289dd7;
+		--azurite-600: #0087c2;
+		--azurite-700: #0072a9;
+		--azurite-750: #00669c;
+		--azurite-800: #005a89;
+		--azurite-900: #003d60;
+
+		--signal-success: #3fa66a;
+		--signal-success-dim: #1c6b3f;
+		--signal-danger: #e2685f;
+		--signal-danger-dim: #a5352c;
+
+		/* ── SEMANTIC — dark surface (the default) ─────────────────────────── */
+		color-scheme: dark;
+
+		--surface-primary: var(--obsidian);
+		--surface-secondary: var(--near-black);
+		--surface-elevated: var(--ink-elevated);
+		--surface-inset: var(--ink-inset);
+
+		--text-primary: var(--warm-white); /* 16.62 : 1 on obsidian */
+		--text-secondary: var(--soft-stone); /* 13.50 / 12.75 / 11.61 / 12.10 */
+
+		/**
+		 * NOT the brief's #777A80. That value scores 4.35:1 on near-black and
+		 * 3.96:1 on ink-elevated — it fails AA for body text on two of the four
+		 * dark surfaces. Rather than use it anyway and hope nobody measures,
+		 * #92959B is used for muted text (6.60 / 6.23 / 5.68 / 5.91) and #777A80
+		 * is re-cast below as the UI boundary token, a job it does pass.
+		 */
+		--text-muted: #92959b;
+
+		/* #777A80 clears 3:1 on every surface in BOTH modes — one value satisfies
+		   SC 1.4.11 Non-text Contrast everywhere. Min is 3.45 on warm-sunken. */
+		--border-strong: var(--graphite);
+		--border-subtle: color-mix(in srgb, var(--graphite) 32%, transparent);
+		--rule: color-mix(in srgb, var(--graphite) 52%, transparent);
+
+		--accent: var(--azurite-500); /* 6.50 : 1 on obsidian */
+		--accent-hover: var(--azurite-400); /* 8.17 : 1 */
+		--accent-quiet: var(--azurite-900);
+		--on-accent: var(--obsidian); /* 6.50 : 1 against the accent fill */
+
+		--focus-ring: var(--azurite-300); /* 8.98 : 1 minimum vs any dark surface */
+
+		--success: var(--signal-success);
+		--danger: var(--signal-danger);
+
+		--selection-bg: var(--azurite-200);
+		--selection-text: var(--obsidian); /* 13.10 : 1 */
+	}
+
+	/* ── SEMANTIC — light surface ────────────────────────────────────────── */
+	[data-surface='light'] {
+		color-scheme: light;
+
+		--surface-primary: var(--warm-white);
+		--surface-secondary: var(--warm-sunken);
+		--surface-elevated: var(--warm-raised);
+		--surface-inset: var(--warm-sunken);
+
+		--text-primary: #14161a; /* 15.66 : 1 on warm-white */
+		--text-secondary: #3a3d42; /* 9.65 / 10.34 / 8.74 */
+		--text-muted: #63666c; /* 5.09 / 5.46 / 4.61 */
+
+		--accent: var(--azurite-750); /* 5.50 : 1 on warm-white */
+		--accent-hover: var(--azurite-800); /* 6.58 : 1 */
+		--accent-quiet: var(--azurite-100);
+		--on-accent: var(--warm-white); /* 5.50 : 1 against the accent fill */
+
+		--focus-ring: var(--azurite-800); /* 5.96 : 1 minimum vs any light surface */
+
+		--success: var(--signal-success-dim);
+		--danger: var(--signal-danger-dim);
+
+		--selection-bg: var(--azurite-200);
+		--selection-text: var(--near-black); /* 12.38 : 1 */
+	}
+
+	/* Declared explicitly so a light section can still contain a dark island. */
+	[data-surface='dark'] {
+		color-scheme: dark;
+
+		--surface-primary: var(--obsidian);
+		--surface-secondary: var(--near-black);
+		--surface-elevated: var(--ink-elevated);
+		--surface-inset: var(--ink-inset);
+
+		--text-primary: var(--warm-white);
+		--text-secondary: var(--soft-stone);
+		--text-muted: #92959b;
+
+		--accent: var(--azurite-500);
+		--accent-hover: var(--azurite-400);
+		--accent-quiet: var(--azurite-900);
+		--on-accent: var(--obsidian);
+
+		--focus-ring: var(--azurite-300);
+
+		--success: var(--signal-success);
+		--danger: var(--signal-danger);
+
+		--selection-bg: var(--azurite-200);
+		--selection-text: var(--obsidian);
+	}
+}

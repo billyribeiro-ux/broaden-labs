@@ -1,0 +1,117 @@
+/**
+ * Reset. Deliberately small — it normalises what actually differs between
+ * engines and nothing else.
+ */
+
+@layer reset {
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+
+	* {
+		margin: 0;
+	}
+
+	html {
+		/* `both-edges` is what prevents the ~15px horizontal jump when the mobile
+		   dialog locks body scroll. Chrome 94 / Firefox 97 / Safari 18.2 — above
+		   the target floor, so the dialog also compensates by padding. */
+		scrollbar-gutter: stable both-edges;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	/* `smooth` must be opt-out for reduced motion, and it is deliberately NOT
+	   set globally — brief §104 bans "excessive smooth scroll". Only the skip
+	   link and in-page anchors ask for it. */
+	@media (prefers-reduced-motion: no-preference) {
+		:has(:target) {
+			scroll-behavior: smooth;
+		}
+	}
+
+	body {
+		min-height: 100svh;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+		text-rendering: optimizeLegibility;
+	}
+
+	/* Images always carry intrinsic dimensions or an aspect-ratio — brief §81.
+	   `height: auto` keeps a width/height pair from distorting a fluid image. */
+	img,
+	picture,
+	video,
+	canvas,
+	svg {
+		display: block;
+		max-inline-size: 100%;
+		block-size: auto;
+	}
+
+	svg {
+		fill: currentColor;
+	}
+
+	input,
+	button,
+	textarea,
+	select {
+		font: inherit;
+		color: inherit;
+		letter-spacing: inherit;
+	}
+
+	button {
+		background: none;
+		border: none;
+		padding: 0;
+		cursor: pointer;
+	}
+
+	a {
+		color: inherit;
+		text-decoration-thickness: 1px;
+		text-underline-offset: 0.22em;
+	}
+
+	ul[role='list'],
+	ol[role='list'] {
+		list-style: none;
+		padding: 0;
+	}
+
+	/**
+	 * Dual-stroke focus ring.
+	 *
+	 * The inner stroke is the SURFACE colour, so the visible ring is only ever
+	 * adjacent to the surface — which reduces the contrast requirement to
+	 * ring-vs-surface (8.98:1 dark, 5.96:1 light) no matter what the element
+	 * itself is filled with. Without that spacer, a focused accent-filled button
+	 * would put #78C5F2 against #289DD7 at 1.61:1 and fail SC 1.4.11.
+	 *
+	 * box-shadow rather than outline because it follows border-radius on every
+	 * engine.
+	 */
+	:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+		outline: none;
+		box-shadow:
+			0 0 0 2px var(--surface-primary),
+			0 0 0 4px var(--focus-ring);
+		border-radius: var(--radius-xs);
+	}
+
+	/* Removing the default outline without :focus-visible support would leave
+	   keyboard users with nothing, so the fallback is explicit. */
+	@supports not selector(:focus-visible) {
+		:where(a, button, input, select, textarea, summary, [tabindex]):focus {
+			outline: 2px solid var(--focus-ring);
+			outline-offset: 2px;
+		}
+	}
+
+	[hidden] {
+		display: none !important;
+	}
+}

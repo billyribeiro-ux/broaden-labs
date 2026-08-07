@@ -1,0 +1,21 @@
+/**
+ * Style entry point. Imported once, from the root layout.
+ *
+ * The layer order is declared FIRST and in one place. Everything downstream
+ * lands in a named layer, which is what makes `!important` unnecessary: a
+ * components-layer rule always beats a base-layer rule regardless of selector
+ * specificity, so overriding never becomes an escalation. Brief §89.
+ *
+ * @layer is Chrome 99 / Firefox 97 / Safari 15.4 — comfortably under the
+ * project's build target floor.
+ */
+
+@layer reset, tokens, base, layout, components, motion, utilities;
+
+@import './reset.css';
+@import './tokens.color.css';
+@import './tokens.type.css';
+@import './tokens.space.css';
+@import './tokens.motion.css';
+@import './typography.css';
+@import './grid.css';

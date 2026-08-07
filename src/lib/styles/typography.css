@@ -1,0 +1,200 @@
+/**
+ * Self-hosted webfaces and the base type layer.
+ *
+ * Files live in src/lib/assets/fonts/ rather than static/ so Vite content-hashes
+ * them and they can be cached immutably. vite.config.ts disables
+ * assetsInlineLimit for .woff2 — otherwise a tightly subsetted face lands under
+ * the 4096-byte threshold, gets base64-inlined into the CSS, and becomes both
+ * uncacheable and impossible to preload.
+ *
+ * All three families are SIL OFL 1.1 with no Reserved Font Name declared on
+ * their copyright lines, which is what makes subsetting and axis pinning
+ * permitted. OFL §2 requires the licence to travel with the files:
+ * static/licenses/ holds all three and /accessibility links them.
+ */
+
+@layer base {
+	/* ── Bricolage Grotesque — display ─────────────────────────────────────
+	 * The `opsz` axis (12–96) is the reason this family was chosen: the hero and
+	 * a caption come from one file with genuinely different drawings.
+	 * `font-optical-sizing: auto` is the initial value and maps opsz to the used
+	 * font-size, so this happens without per-size declarations.
+	 *
+	 * `wdth` was pinned to 100 at build time — it only condenses, and keeping it
+	 * cost 63,656 bytes (42% of the file) on the critical preload path for an
+	 * effect the measured 320px hero does not need.
+	 */
+	@font-face {
+		font-family: 'Bricolage Grotesque';
+		src: url('../assets/fonts/bricolage-var-latin.woff2') format('woff2');
+		font-weight: 200 800;
+		font-style: normal;
+		font-display: swap;
+		unicode-range:
+			U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+			U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+	}
+	@font-face {
+		font-family: 'Bricolage Grotesque';
+		src: url('../assets/fonts/bricolage-var-latin-ext.woff2') format('woff2');
+		font-weight: 200 800;
+		font-style: normal;
+		font-display: swap;
+		unicode-range:
+			U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+			U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+			U+A720-A7FF;
+	}
+
+	/* ── Instrument Sans — body ───────────────────────────────────────────── */
+	@font-face {
+		font-family: 'Instrument Sans';
+		src: url('../assets/fonts/instrument-var-latin.woff2') format('woff2');
+		font-weight: 400 700;
+		font-style: normal;
+		font-display: swap;
+		unicode-range:
+			U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+			U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+	}
+	@font-face {
+		font-family: 'Instrument Sans';
+		src: url('../assets/fonts/instrument-var-latin-ext.woff2') format('woff2');
+		font-weight: 400 700;
+		font-style: normal;
+		font-display: swap;
+		unicode-range:
+			U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+			U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+			U+A720-A7FF;
+	}
+
+	/* ── JetBrains Mono — technical metadata ──────────────────────────────── */
+	@font-face {
+		font-family: 'JetBrains Mono';
+		src: url('../assets/fonts/jetbrains-var-latin.woff2') format('woff2');
+		font-weight: 100 800;
+		font-style: normal;
+		font-display: swap;
+		unicode-range:
+			U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+			U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+	}
+	@font-face {
+		font-family: 'JetBrains Mono';
+		src: url('../assets/fonts/jetbrains-var-latin-ext.woff2') format('woff2');
+		font-weight: 100 800;
+		font-style: normal;
+		font-display: swap;
+		unicode-range:
+			U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+			U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+			U+A720-A7FF;
+	}
+
+	/* ── Metric-matched fallbacks ──────────────────────────────────────────
+	 * Every value below was computed from the SHIPPED subset files, by averaging
+	 * real hmtx advances over [a-z] plus space at the exact variable instance
+	 * each family renders at, against the same measurement of the local
+	 * fallback. They are measurements, not estimates.
+	 *
+	 * size-adjust    = avgAdvance(web) / avgAdvance(fallback)
+	 * ascent-override= ascent(web) / (upem × size-adjust)
+	 *
+	 * HONEST LIMITATION: ascent-override, descent-override and line-gap-override
+	 * are not implemented in Safari at all (MDN BCD 8.0.10:
+	 * safari: false, safari_ios: false). Only size-adjust is, and only from
+	 * Safari 17. They are declared anyway because they cost nothing and do help
+	 * Chromium and Firefox — but the mechanism this system actually relies on to
+	 * hold CLS at zero is the explicit line-height on every type token.
+	 */
+	@font-face {
+		font-family: 'Bricolage Fallback';
+		src: local('Arial Bold'), local('Helvetica Neue Bold'), local('Arial');
+		size-adjust: 95.15%; /* 0.503222em / 0.528899em */
+		ascent-override: 97.75%;
+		descent-override: 28.38%;
+		line-gap-override: 0%;
+	}
+	@font-face {
+		font-family: 'Instrument Fallback';
+		src: local('Arial'), local('Helvetica Neue');
+		size-adjust: 106.47%; /* 0.512852em / 0.481698em */
+		ascent-override: 91.11%;
+		descent-override: 23.48%;
+		line-gap-override: 0%;
+	}
+	@font-face {
+		font-family: 'JetBrains Fallback';
+		/* JetBrains Mono's advance is exactly 600/1000em and Courier New's is
+		   1229/2048 = 0.600098 — a 99.98% match, which is as close as a metric
+		   fallback ever gets. */
+		src: local('Courier New'), local('Menlo');
+		size-adjust: 99.98%;
+		ascent-override: 102.02%;
+		descent-override: 30%;
+		line-gap-override: 0%;
+	}
+
+	/* ── Base type ─────────────────────────────────────────────────────────── */
+	html {
+		font-family: var(--font-body);
+		font-size: 100%; /* never override the user's root size */
+		line-height: var(--lh-body);
+		-webkit-text-size-adjust: 100%;
+		text-size-adjust: 100%;
+	}
+
+	body {
+		font-size: var(--text-base);
+		font-weight: var(--weight-regular);
+		letter-spacing: var(--tracking-normal);
+		color: var(--text-primary);
+		background-color: var(--surface-primary);
+		font-synthesis-weight: none; /* never fake a weight the axis can produce */
+	}
+
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		font-family: var(--font-display);
+		font-weight: var(--weight-display);
+		line-height: var(--lh-heading);
+		letter-spacing: var(--tracking-heading);
+		/* `balance` is Chrome 114 / Firefox 121 / Safari 17.5 — above the build
+		   target floor, so pure enhancement. Browsers cap it around 4–6 lines. */
+		text-wrap: balance;
+		margin: 0;
+	}
+
+	p,
+	li,
+	dd,
+	figcaption {
+		/* `pretty` optimises for orphans, which is a body-copy problem — it never
+		   belongs on a heading. Firefox has no support and is not getting it, so
+		   no layout may depend on it. */
+		text-wrap: pretty;
+	}
+
+	p {
+		margin: 0;
+	}
+
+	code,
+	kbd,
+	samp,
+	pre {
+		font-family: var(--font-mono);
+		font-size: 0.9em; /* mono runs optically large next to Instrument Sans */
+	}
+
+	::selection {
+		background-color: var(--selection-bg);
+		color: var(--selection-text);
+		text-shadow: none;
+	}
+}

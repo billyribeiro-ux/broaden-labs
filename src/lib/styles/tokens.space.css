@@ -1,0 +1,68 @@
+/**
+ * Spacing, radii, borders, shadows, z-index and container tokens.
+ *
+ * Radii are near-zero on purpose. Brief §17: "Do NOT make everything rounded."
+ * Sharp corners plus 1px hairlines are what produce the "precision engineering /
+ * architectural editorial" mood; rounded cards are the SaaS look the brief bans.
+ */
+
+@layer tokens {
+	:root {
+		/* ── SPACE — a 4px base, doubling into an editorial rhythm ─────────── */
+		--space-3xs: 0.25rem; /*  4px */
+		--space-2xs: 0.5rem; /*  8px */
+		--space-xs: 0.75rem; /* 12px */
+		--space-sm: 1rem; /* 16px */
+		--space-md: 1.5rem; /* 24px */
+		--space-lg: 2rem; /* 32px */
+		--space-xl: 3rem; /* 48px */
+		--space-2xl: 4rem; /* 64px */
+		--space-3xl: 6rem; /* 96px */
+		--space-4xl: 8rem; /* 128px */
+		--space-5xl: 12rem; /* 192px */
+
+		/* Section rhythm scales with the viewport so a section does not feel
+		   cramped at 2560px or cavernous at 320px. */
+		--space-section: clamp(4rem, 2.2857rem + 8.5714vw, 10rem); /* 64 → 160 */
+		--space-section-tight: clamp(2.5rem, 1.7857rem + 3.5714vw, 5rem); /* 40 →  80 */
+
+		/* ── RADII ─────────────────────────────────────────────────────────── */
+		--radius-none: 0;
+		--radius-xs: 2px; /* controls only */
+		--radius-sm: 3px;
+		--radius-pill: 999px; /* tags only */
+
+		/* ── BORDERS ───────────────────────────────────────────────────────── */
+		--border-hairline: 1px;
+		--border-thick: 2px;
+
+		/* ── SHADOWS ───────────────────────────────────────────────────────────
+		 * Restrained by design: on an obsidian surface a soft drop shadow is
+		 * invisible, and faking elevation with glow is the neon look §17 bans.
+		 * Elevation is expressed with surface colour and hairlines instead;
+		 * these exist for genuinely floating UI only.
+		 */
+		--shadow-none: none;
+		--shadow-raised: 0 1px 2px rgb(0 0 0 / 0.28);
+		--shadow-overlay: 0 24px 64px -12px rgb(0 0 0 / 0.55);
+
+		/* ── Z-INDEX — a declared ladder, so nothing needs a magic 9999 ────── */
+		--z-below: -1;
+		--z-base: 0;
+		--z-aperture: 1;
+		--z-sticky: 10;
+		--z-header: 20;
+		--z-overlay: 30;
+		--z-dialog: 40;
+		--z-skip-link: 50;
+
+		/* ── CONTAINERS ────────────────────────────────────────────────────── */
+		--container-max: 90rem; /* 1440px — the editorial measure ceiling */
+		--container-wide: 100rem; /* 1600px — full-bleed-ish sections */
+		--container-prose: 46rem; /* 736px  — long-form article column */
+
+		/* Gutters must never drop below 16px or the 320px hero calculation in
+		   tokens.type.css stops holding. */
+		--gutter: clamp(1.25rem, 0.9107rem + 1.6964vw, 3.5rem); /* 20 → 56 */
+	}
+}
