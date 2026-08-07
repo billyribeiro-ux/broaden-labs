@@ -34,6 +34,23 @@ test.describe('every route renders and is accessible', () => {
 			const response = await page.goto(route);
 			expect(response?.status(), `${route} status`).toBe(200);
 
+			/**
+			 * Let motion settle before sampling.
+			 *
+			 * axe computes colour contrast from the composited colour, so an element
+			 * captured mid-fade is measured at a partial opacity it only holds for a
+			 * few hundred milliseconds. Firefox timing caught the hero eyebrow this
+			 * way and reported a contrast failure that does not exist at rest.
+			 *
+			 * The resting state is the right thing to audit: it is what every
+			 * reduced-motion user sees immediately, what a no-JS visitor sees, and
+			 * what everyone else sees within 1.2s. Waiting is not hiding a problem —
+			 * the transient is a consequence of the reveal, and the reveal is
+			 * suppressed entirely for anyone who has asked for less motion.
+			 */
+			await page.evaluate(() => document.fonts.ready);
+			await page.waitForTimeout(1400);
+
 			const { violations } = await new AxeBuilder({ page }).withTags(WCAG_22_AA).analyze();
 
 			// Reported by rule id + the offending selector, so a failure says what

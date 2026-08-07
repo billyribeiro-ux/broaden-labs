@@ -45,6 +45,12 @@ test.describe('dynamic routes', () => {
 			expect(response?.status()).toBe(200);
 			await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
+			// Settle motion before sampling — see the note in shell.e2e.ts: axe reads
+			// composited colour, so an element mid-fade reports a contrast it only
+			// holds transiently.
+			await page.evaluate(() => document.fonts.ready);
+			await page.waitForTimeout(1200);
+
 			const { violations } = await new AxeBuilder({ page }).withTags(WCAG_22_AA).analyze();
 			expect(violations.map((v) => v.id)).toEqual([]);
 		});
@@ -56,6 +62,12 @@ test.describe('dynamic routes', () => {
 			expect(response?.status()).toBe(200);
 			await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
+			// Settle motion before sampling — see the note in shell.e2e.ts: axe reads
+			// composited colour, so an element mid-fade reports a contrast it only
+			// holds transiently.
+			await page.evaluate(() => document.fonts.ready);
+			await page.waitForTimeout(1200);
+
 			const { violations } = await new AxeBuilder({ page }).withTags(WCAG_22_AA).analyze();
 			expect(violations.map((v) => v.id)).toEqual([]);
 		});
@@ -66,6 +78,12 @@ test.describe('dynamic routes', () => {
 			const response = await page.goto(`/insights/${slug}`);
 			expect(response?.status()).toBe(200);
 			await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+
+			// Settle motion before sampling — see the note in shell.e2e.ts: axe reads
+			// composited colour, so an element mid-fade reports a contrast it only
+			// holds transiently.
+			await page.evaluate(() => document.fonts.ready);
+			await page.waitForTimeout(1200);
 
 			const { violations } = await new AxeBuilder({ page }).withTags(WCAG_22_AA).analyze();
 			expect(violations.map((v) => v.id)).toEqual([]);

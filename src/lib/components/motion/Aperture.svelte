@@ -13,21 +13,36 @@
 	 *
 	 * M3 renders the resting state. M5 drives `--aperture` from ScrollTrigger.
 	 */
+	import { apertureScroll } from '#lib/animation/motion';
+
 	type Mode = 'rule' | 'bracket' | 'connector' | 'scale' | 'underline' | 'gate';
 
 	interface Props {
 		mode?: Mode;
-		/** 0 → 1. Static here; scroll-driven from M5. */
-		extent?: number;
+		/**
+		 * Fixed extent. When omitted the motif is scroll-driven, which is the
+		 * normal case; passing a value pins it (used where the line is structural
+		 * rather than expressive, e.g. inside a card).
+		 */
+		extent?: number | undefined;
 	}
 
-	let { mode = 'rule', extent = 1 }: Props = $props();
+	let { mode = 'rule', extent }: Props = $props();
+
+	const driven = $derived(extent === undefined);
 </script>
 
+<!--
+	The scroll driver is attached only when the extent is not pinned. An
+	attachment re-runs when the state it reads changes, so `driven` is read here
+	in the template rather than inside the attachment — the timeline is built
+	once, not rebuilt on every scroll tick.
+-->
 <svg
 	class="aperture"
 	data-mode={mode}
-	style="--aperture: {extent}"
+	style={driven ? undefined : `--aperture: ${extent}`}
+	{@attach driven ? apertureScroll() : undefined}
 	viewBox="0 0 1000 8"
 	preserveAspectRatio="none"
 	aria-hidden="true"
@@ -58,8 +73,22 @@
 		stroke-width: 1;
 	}
 
+	/*
+	 * @property is Chrome 85 / Safari 16.4 / FIREFOX 128 — above the project's
+	 * firefox114 build-target floor, so registration silently no-ops there.
+	 * That is safe BECAUSE the visible motion is `transform: scaleX()`, which is
+	 * universally animatable; the registration only buys typed interpolation for
+	 * the terminator opacity. Nothing load-bearing depends on it.
+	 */
+	@property --aperture {
+		syntax: '<number>';
+		inherits: true;
+		initial-value: 1;
+	}
+
 	.rule {
 		transform: scaleX(var(--aperture, 1));
+		/* Composited: one GPU quad, no layout, no paint, no per-frame JS. */
 		transition: transform var(--dur-cinematic) var(--ease-inertial);
 	}
 

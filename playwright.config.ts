@@ -26,6 +26,14 @@ import { defineConfig, devices } from '@playwright/test';
  */
 const DB_WRITING_SPECS = '**/inquiry*.e2e.{ts,js}';
 
+/**
+ * Specs that require an emulated media preference. They only make sense in the
+ * project that sets it — run anywhere else they assert reduced-motion behaviour
+ * in a context where motion is allowed, and fail for the right reason at the
+ * wrong time.
+ */
+const PREFERENCE_SPECS = '**/*.reduced.e2e.{ts,js}';
+
 export default defineConfig({
 	testDir: 'src',
 	testMatch: '**/*.e2e.{ts,js}',
@@ -57,12 +65,12 @@ export default defineConfig({
 	projects: [
 		{
 			name: 'chromium',
-			testIgnore: DB_WRITING_SPECS,
+			testIgnore: [DB_WRITING_SPECS, PREFERENCE_SPECS],
 			use: { ...devices['Desktop Chrome'] }
 		},
 		{
 			name: 'firefox',
-			testIgnore: DB_WRITING_SPECS,
+			testIgnore: [DB_WRITING_SPECS, PREFERENCE_SPECS],
 			use: { ...devices['Desktop Firefox'] }
 		},
 
@@ -70,7 +78,7 @@ export default defineConfig({
 		// sets 1; mixing them in one screenshot suite doubles WebKit baselines.
 		{
 			name: 'webkit',
-			testIgnore: DB_WRITING_SPECS,
+			testIgnore: [DB_WRITING_SPECS, PREFERENCE_SPECS],
 			use: { ...devices['Desktop Safari'] }
 		},
 
@@ -79,7 +87,7 @@ export default defineConfig({
 		// set an explicit viewport rather than pretending a device matches.
 		{
 			name: 'mobile',
-			testIgnore: DB_WRITING_SPECS,
+			testIgnore: [DB_WRITING_SPECS, PREFERENCE_SPECS],
 			use: { ...devices['iPhone 14'] }
 		},
 
@@ -90,7 +98,7 @@ export default defineConfig({
 		{
 			name: 'no-js',
 			testMatch: '**/*.nojs.e2e.{ts,js}',
-			testIgnore: DB_WRITING_SPECS,
+			testIgnore: [DB_WRITING_SPECS, PREFERENCE_SPECS],
 			use: { ...devices['Desktop Chrome'], javaScriptEnabled: false }
 		},
 

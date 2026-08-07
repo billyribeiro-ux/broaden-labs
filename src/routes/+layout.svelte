@@ -8,6 +8,7 @@
 	// the hash, preload a file nothing uses, and double the transfer.
 	import displayFont from '#lib/assets/fonts/bricolage-var-latin.woff2';
 	import bodyFont from '#lib/assets/fonts/instrument-var-latin.woff2';
+	import { usePageTransitions } from '#lib/animation/transitions';
 	import SkipLink from '#lib/components/navigation/SkipLink.svelte';
 	import SiteHeader from '#lib/components/layout/SiteHeader.svelte';
 	import SiteFooter from '#lib/components/layout/SiteFooter.svelte';
@@ -23,6 +24,10 @@
 	}
 
 	let { children }: Props = $props();
+
+	// Registers an onNavigate hook. Called during component init, which is where
+	// Kit expects navigation lifecycle registration — not inside an effect.
+	usePageTransitions();
 </script>
 
 <svelte:head>

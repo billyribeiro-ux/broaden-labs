@@ -23,6 +23,7 @@
 		FINAL_BRAND_MOMENT
 	} from '#lib/content/narrative';
 	import { PUBLIC_CONTACT_EMAIL } from '$app/env/public';
+	import { heroSequence, splitReveal, reveal } from '#lib/animation/motion';
 
 	/**
 	 * Homepage. Brief §111 narrative order.
@@ -49,25 +50,29 @@
 <section class="section hero">
 	<div class="container">
 		<div class="grid">
-			<div class="span-full content">
-				<Eyebrow>Software • Platforms • Digital Experiences</Eyebrow>
+			<div class="span-full content" {@attach heroSequence()}>
+				<div data-hero="eyebrow">
+					<Eyebrow>Software • Platforms • Digital Experiences</Eyebrow>
+				</div>
 
-				<DisplayHeading level={1} size="hero" measure={false}>
+				<h1 class="hero-headline" {@attach splitReveal({ start: 'top 95%' })}>
 					Software that expands what your business can become.
-				</DisplayHeading>
+				</h1>
 
-				<p class="lede">
+				<p class="lede" data-hero="copy">
 					Broaden Labs designs and engineers ambitious digital products—from high-performance web
 					applications and SaaS platforms to real-time systems, intelligent workflows, and the
 					infrastructure behind them.
 				</p>
 
-				<div class="actions">
+				<div class="actions" data-hero="actions">
 					<Button href="/start-a-project">Start a project</Button>
 					<Button href="/work" variant="secondary">Explore our work</Button>
 				</div>
 
-				<p class="microcopy">Strategy. Design. Engineering. One senior product team.</p>
+				<p class="microcopy" data-hero="micro">
+					Strategy. Design. Engineering. One senior product team.
+				</p>
 			</div>
 		</div>
 	</div>
@@ -106,7 +111,7 @@
 			</div>
 		</div>
 
-		<ul class="cards" role="list">
+		<ul class="cards" role="list" {@attach reveal({ children: 'li', stagger: 0.08 })}>
 			{#each SERVICES as service (service.slug)}
 				<li><ServiceCard {service} /></li>
 			{/each}
@@ -129,7 +134,7 @@
 			</div>
 		</div>
 
-		<ul class="projects" role="list">
+		<ul class="projects" role="list" {@attach reveal({ children: 'li', stagger: 0.11 })}>
 			{#each featured as study, index (study.slug)}
 				<li><ProjectCard {study} {index} /></li>
 			{/each}
@@ -161,7 +166,7 @@
 <!-- 6 · Principles ──────────────────────────────────────────────────────── -->
 <section class="section section--flush-top" data-surface="light">
 	<div class="container">
-		<ol class="principles" role="list">
+		<ol class="principles" role="list" {@attach reveal({ children: 'li', stagger: 0.06 })}>
 			{#each PRINCIPLES as principle (principle.number)}
 				<li class="principle">
 					<span class="principle-number" aria-hidden="true">{principle.number}</span>
@@ -190,7 +195,7 @@
 			</div>
 		</div>
 
-		<ol class="process" role="list">
+		<ol class="process" role="list" {@attach reveal({ children: 'li', stagger: 0.08 })}>
 			{#each PROCESS as step (step.number)}
 				<li class="step">
 					<div class="step-head">
@@ -272,7 +277,7 @@
 <section class="section closing">
 	<div class="container">
 		<div class="grid">
-			<div class="span-8-4 closing-content">
+			<div class="span-8-4 closing-content" {@attach reveal({ distance: 24 })}>
 				<DisplayHeading size="lg" measure={false}>{CLOSING.headline}</DisplayHeading>
 				<p class="closing-body">{CLOSING.body}</p>
 				<div class="actions">
@@ -303,6 +308,30 @@
 <style>
 	.hero {
 		padding-block-start: var(--space-3xl);
+	}
+
+	/*
+	 * The hero headline is a plain <h1> rather than <DisplayHeading> because
+	 * SplitText mutates the element's children, and a component that owns its own
+	 * markup should not have another library rewriting it.
+	 */
+	.hero-headline {
+		font-family: var(--font-display);
+		font-size: var(--display-hero);
+		font-weight: var(--weight-display);
+		line-height: var(--lh-display);
+		letter-spacing: var(--tracking-mega);
+		color: var(--text-primary);
+		text-wrap: balance;
+	}
+
+	/*
+	 * SplitText's mask wrapper needs overflow hidden for the lines to rise from
+	 * behind an edge. `:global` because SplitText creates these elements at
+	 * runtime, so the scoping hash never reaches them.
+	 */
+	.hero-headline :global(.split-line) {
+		will-change: transform;
 	}
 
 	.content {
