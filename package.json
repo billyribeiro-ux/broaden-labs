@@ -64,11 +64,6 @@
 		"vitest": "^4.1.10",
 		"vitest-browser-svelte": "^3.0.0"
 	},
-	"pnpm": {
-		"overrides": {
-			"typescript": "6.0.3"
-		}
-	},
 	"imports": {
 		"#lib": "./src/lib/index.js",
 		"#lib/*": "./src/lib/*"

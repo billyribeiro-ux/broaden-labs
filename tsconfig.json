@@ -3,10 +3,19 @@
 	"compilerOptions": {
 		"rewriteRelativeImportExtensions": true,
 		"sourceMap": true,
-		"strict": true
+
+		// $app/tsconfig (node_modules/$app/tsconfig.json) sets paths, rootDirs, types,
+		// lib, verbatimModuleSyntax and isolatedModules — and none of the strictness
+		// below. Every flag here is ours to declare. Brief §5.
+		"strict": true,
+		"noImplicitAny": true,
+		"strictNullChecks": true,
+		"useUnknownInCatchVariables": true,
+		"noUncheckedIndexedAccess": true,
+		"exactOptionalPropertyTypes": true,
+		"noImplicitOverride": true,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitReturns": true
 	},
-	"include": [
-		"src",
-		"drizzle.config.ts"
-	]
+	"include": ["src", "drizzle.config.ts", "playwright.config.ts", "vite.config.ts"]
 }

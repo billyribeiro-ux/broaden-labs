@@ -8,3 +8,10 @@ bun.lockb
 # Miscellaneous
 /static/
 /drizzle/
+
+# Vendored Svelte AI-tools reference docs. We do not own their formatting, and
+# their embedded snippets are illustrative fragments (e.g. a bare
+# `$inspect.trace()`) that prettier's babel parser reports as a syntax error
+# while still passing the run. Ignoring them keeps `pnpm lint` output clean.
+/.github/skills/
+

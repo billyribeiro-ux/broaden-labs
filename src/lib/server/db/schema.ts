@@ -1,7 +1,11 @@
-import { pgTable, serial, integer, text } from 'drizzle-orm/pg-core';
+/**
+ * Drizzle schema.
+ *
+ * Deliberately empty for now: the scaffold's example `task` table has been
+ * removed, and the real tables (project_inquiries, newsletter_subscribers,
+ * contact_events) land in M4 alongside their migrations, indexes and
+ * repositories. Inventing them early would mean generating a migration that
+ * nothing uses yet.
+ */
 
-export const task = pgTable('task', {
-	id: serial('id').primaryKey(),
-	title: text('title').notNull(),
-	priority: integer('priority').notNull().default(1)
-});
+export {};

@@ -1,0 +1,17 @@
+# Anchors the pnpm workspace root at this project. Without it, pnpm walks up and
+# finds ~/pnpm-workspace.yaml, which declares no packages, so install resolves to
+# "No projects found in /Users/billyribeiro" and nothing is installed.
+allowBuilds:
+  esbuild: true
+
+# TypeScript's `latest` is 7.x (the Go port). @sveltejs/kit@3 peers ^6.0.0 and
+# typescript-eslint peers >=4.8.4 <6.1.0, so any resolution to 7 breaks
+# svelte-check, eslint and Kit's peer range at once. pnpm 11 no longer reads
+# `pnpm.overrides` from package.json — this file is the only place it applies.
+overrides:
+  typescript: 6.0.3
+minimumReleaseAgeExclude:
+  - '@sveltejs/adapter-vercel@7.0.0-next.6'
+  - '@sveltejs/kit@3.0.0-next.16'
+  - '@sveltejs/load-config@0.2.2'
+  - svelte-check@4.7.5
