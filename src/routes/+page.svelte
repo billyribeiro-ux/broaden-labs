@@ -25,6 +25,7 @@
 	import { PUBLIC_CONTACT_EMAIL } from '$app/env/public';
 	import { heroSequence, splitReveal, reveal } from '#lib/animation/motion';
 	import WebGLStage from '#lib/components/three/WebGLStage.svelte';
+	import Seo from '#lib/components/seo/Seo.svelte';
 
 	/**
 	 * Homepage. Brief §111 narrative order.
@@ -39,13 +40,10 @@
 	const testimonial = TESTIMONIALS[0];
 </script>
 
-<svelte:head>
-	<title>Broaden Labs — Software, Platforms &amp; Digital Product Engineering</title>
-	<meta
-		name="description"
-		content="Broaden Labs designs and engineers custom software, SaaS platforms, real-time systems, intelligent workflows, and high-performance digital products."
-	/>
-</svelte:head>
+<Seo
+	title="Broaden Labs — Software, Platforms &amp; Digital Product Engineering"
+	description="Broaden Labs designs and engineers custom software, SaaS platforms, real-time systems, intelligent workflows, and high-performance digital products."
+/>
 
 <!-- 1 · Arrival ─────────────────────────────────────────────────────────── -->
 <section class="section hero">

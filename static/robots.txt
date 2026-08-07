@@ -1,3 +1,10 @@
-# allow crawling everything by default
+# Broaden Labs
+
 User-agent: *
-Disallow:
+Allow: /
+
+# Remote function endpoints are an implementation detail, not a public API, and
+# they respond only to POST. Crawling them wastes budget and produces nothing.
+Disallow: /_app/
+
+Sitemap: https://broadenlabs.com/sitemap.xml

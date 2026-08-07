@@ -6,6 +6,7 @@
 	import ProjectCard from '#lib/components/cards/ProjectCard.svelte';
 	import { CASE_STUDIES } from '#lib/content/demo/case-studies';
 	import type { Industry, Capability } from '#lib/content/schema';
+	import Seo from '#lib/components/seo/Seo.svelte';
 
 	/**
 	 * Work index with a working filter. Brief §33, §126.
@@ -95,13 +96,12 @@
 	const hasFilters = $derived(Boolean(activeIndustry || activeCapability));
 </script>
 
-<svelte:head>
-	<title>Work — Broaden Labs</title>
-	<meta
-		name="description"
-		content="Selected Broaden Labs engagements across fintech, healthcare operations, B2B commerce, infrastructure and emerging technology."
-	/>
-</svelte:head>
+<Seo
+	title="Work — Broaden Labs"
+	description="Selected Broaden Labs engagements across fintech, healthcare operations, B2B commerce, infrastructure and emerging technology."
+	image="/og/work.png"
+	breadcrumbs={[{ name: 'Work', href: '/work' }]}
+/>
 
 <section class="section section--tight">
 	<div class="container">

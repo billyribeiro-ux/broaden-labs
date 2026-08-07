@@ -5,15 +5,15 @@
 	import ServiceCard from '#lib/components/cards/ServiceCard.svelte';
 	import Aperture from '#lib/components/motion/Aperture.svelte';
 	import { SERVICES } from '#lib/content/services';
+	import Seo from '#lib/components/seo/Seo.svelte';
 </script>
 
-<svelte:head>
-	<title>Capabilities — Broaden Labs</title>
-	<meta
-		name="description"
-		content="Broaden Labs works across strategy, product design, software engineering, real-time systems, intelligent automation, and technical architecture."
-	/>
-</svelte:head>
+<Seo
+	title="Capabilities — Broaden Labs"
+	description="Broaden Labs works across strategy, product design, software engineering, real-time systems, intelligent automation, and technical architecture."
+	image="/og/services.png"
+	breadcrumbs={[{ name: 'Services', href: '/services' }]}
+/>
 
 <section class="section section--tight">
 	<div class="container">

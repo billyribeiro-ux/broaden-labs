@@ -5,6 +5,7 @@
 	import DisplayHeading from '#lib/components/typography/DisplayHeading.svelte';
 	import ArticleCard from '#lib/components/cards/ArticleCard.svelte';
 	import { INSIGHTS, INSIGHT_CATEGORIES } from '#lib/content/insights';
+	import Seo from '#lib/components/seo/Seo.svelte';
 
 	/**
 	 * Insights index. Same URL-state approach as /work: the category is in the
@@ -29,13 +30,12 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Insights — Broaden Labs</title>
-	<meta
-		name="description"
-		content="Notes from Broaden on software architecture, product design, real-time systems, AI, engineering, performance, and building digital products that can keep changing."
-	/>
-</svelte:head>
+<Seo
+	title="Insights — Broaden Labs"
+	description="Notes from Broaden on software architecture, product design, real-time systems, AI, engineering, performance, and building digital products that can keep changing."
+	image="/og/insights.png"
+	breadcrumbs={[{ name: 'Insights', href: '/insights' }]}
+/>
 
 <section class="section section--tight">
 	<div class="container">

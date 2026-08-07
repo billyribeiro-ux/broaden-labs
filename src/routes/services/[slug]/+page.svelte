@@ -7,6 +7,7 @@
 	import ProjectCard from '#lib/components/cards/ProjectCard.svelte';
 	import ArticleCard from '#lib/components/cards/ArticleCard.svelte';
 	import type { PageProps } from './$types';
+	import Seo from '#lib/components/seo/Seo.svelte';
 
 	/**
 	 * Service detail. Brief §40–46.
@@ -24,10 +25,14 @@
 	const leadWithFit = $derived(service.slug === 'platform-modernization');
 </script>
 
-<svelte:head>
-	<title>{service.metaTitle}</title>
-	<meta name="description" content={service.metaDescription} />
-</svelte:head>
+<Seo
+	title={service.metaTitle}
+	description={service.metaDescription}
+	breadcrumbs={[
+		{ name: 'Services', href: '/services' },
+		{ name: service.name, href: `/services/${service.slug}` }
+	]}
+/>
 
 <article>
 	<section class="section section--tight">

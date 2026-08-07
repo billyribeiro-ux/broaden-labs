@@ -5,6 +5,7 @@
 	import ArticleCard from '#lib/components/cards/ArticleCard.svelte';
 	import Aperture from '#lib/components/motion/Aperture.svelte';
 	import type { PageProps } from './$types';
+	import Seo from '#lib/components/seo/Seo.svelte';
 
 	/**
 	 * Article template. Brief §57.
@@ -23,10 +24,17 @@
 	);
 </script>
 
-<svelte:head>
-	<title>{insight.title} — Broaden Labs</title>
-	<meta name="description" content={insight.dek} />
-</svelte:head>
+<Seo
+	title="{insight.title} — Broaden Labs"
+	description={insight.dek}
+	kind="article"
+	published={insight.published}
+	author={insight.author}
+	breadcrumbs={[
+		{ name: 'Insights', href: '/insights' },
+		{ name: insight.title, href: `/insights/${insight.slug}` }
+	]}
+/>
 
 <article>
 	<header class="section section--tight">

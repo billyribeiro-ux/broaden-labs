@@ -6,6 +6,7 @@
 	import ProjectSurface from '#lib/components/work/ProjectSurface.svelte';
 	import ArchitectureDiagram from '#lib/components/work/ArchitectureDiagram.svelte';
 	import type { PageProps } from './$types';
+	import Seo from '#lib/components/seo/Seo.svelte';
 
 	/**
 	 * Case study template. Brief §48, §49.
@@ -24,10 +25,14 @@
 	const showDiagram = $derived(study.slug === 'meridian-markets');
 </script>
 
-<svelte:head>
-	<title>{study.client} — {study.project} | Broaden Labs</title>
-	<meta name="description" content={study.summary[0]} />
-</svelte:head>
+<Seo
+	title="{study.client} — {study.project} | Broaden Labs"
+	description={study.summary[0] ?? study.headline}
+	breadcrumbs={[
+		{ name: 'Work', href: '/work' },
+		{ name: study.client, href: `/work/${study.slug}` }
+	]}
+/>
 
 <article>
 	<!-- Hero ────────────────────────────────────────────────────────────── -->

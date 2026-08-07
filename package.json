@@ -22,7 +22,9 @@
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
-		"db:seed": "tsx src/lib/server/db/seed.ts"
+		"db:seed": "tsx src/lib/server/db/seed.ts",
+		"og:build": "node scripts/build-og.mjs",
+		"fonts:build": "python3 scripts/build-fonts.py"
 	},
 	"dependencies": {
 		"@threlte/core": "^8.5.16",

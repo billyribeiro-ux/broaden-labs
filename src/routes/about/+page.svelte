@@ -6,15 +6,15 @@
 	import Portrait from '#lib/components/brand/Portrait.svelte';
 	import { ABOUT_MANIFESTO, WHY_BROADEN, VALUES } from '#lib/content/narrative';
 	import { TEAM } from '#lib/content/demo/people';
+	import Seo from '#lib/components/seo/Seo.svelte';
 </script>
 
-<svelte:head>
-	<title>About — Broaden Labs</title>
-	<meta
-		name="description"
-		content="Broaden Labs is a software product studio for organizations building something that matters enough to get the details right."
-	/>
-</svelte:head>
+<Seo
+	title="About — Broaden Labs"
+	description="Broaden Labs is a software product studio for organizations building something that matters enough to get the details right."
+	image="/og/about.png"
+	breadcrumbs={[{ name: 'About', href: '/about' }]}
+/>
 
 <section class="section section--tight">
 	<div class="container">

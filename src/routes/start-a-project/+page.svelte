@@ -12,6 +12,7 @@
 		REFERRAL_SOURCES
 	} from '#lib/schemas/inquiry';
 	import { PUBLIC_CONTACT_EMAIL } from '$app/env/public';
+	import Seo from '#lib/components/seo/Seo.svelte';
 
 	/**
 	 * The inquiry form. Brief §58, §59.
@@ -31,13 +32,12 @@
 	const pending = $derived(form.pending > 0);
 </script>
 
-<svelte:head>
-	<title>Start a project — Broaden Labs</title>
-	<meta
-		name="description"
-		content="Tell us where the product is today, where it needs to go, and what is making that difficult."
-	/>
-</svelte:head>
+<Seo
+	title="Start a project — Broaden Labs"
+	description="Tell us where the product is today, where it needs to go, and what is making that difficult."
+	image="/og/start-a-project.png"
+	breadcrumbs={[{ name: 'Start a project', href: '/start-a-project' }]}
+/>
 
 <section class="section section--tight">
 	<div class="container">

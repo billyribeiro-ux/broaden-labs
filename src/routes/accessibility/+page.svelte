@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Eyebrow from '#lib/components/typography/Eyebrow.svelte';
 	import DisplayHeading from '#lib/components/typography/DisplayHeading.svelte';
+	import Seo from '#lib/components/seo/Seo.svelte';
 
 	/**
 	 * Legal copy is written in M7 and must be reviewed by counsel before launch.
@@ -10,11 +11,11 @@
 	 */
 </script>
 
-<svelte:head>
-	<title>Accessibility — Broaden Labs</title>
-	<meta name="description" content="Accessibility policy for Broaden Labs." />
-	<meta name="robots" content="noindex" />
-</svelte:head>
+<Seo
+	title="Accessibility — Broaden Labs"
+	description="Accessibility policy for Broaden Labs. Not yet written."
+	noindex
+/>
 
 <section class="section">
 	<div class="container">
