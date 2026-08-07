@@ -29,16 +29,55 @@ function needsTls(url: string): boolean {
 	return searchParams.get('sslmode') !== 'disable';
 }
 
-const client = new pg.Pool({
-	connectionString: DATABASE_URL,
-	...(needsTls(DATABASE_URL) ? { ssl: { rejectUnauthorized: true } } : {}),
+/**
+ * The connection is LAZY.
+ *
+ * `DATABASE_URL` is optional at build time (see src/env.ts) because
+ * prerendering this site touches no database — requiring it made a Vercel
+ * deployment fail before a database existed. Constructing the pool eagerly here
+ * would reintroduce exactly that, because this module is imported by the
+ * remote-function bundle, which the build analyses.
+ *
+ * So nothing connects until something actually queries. A deployment without a
+ * database serves every marketing page perfectly and fails only the inquiry
+ * form, with a message that says what is wrong.
+ */
+let pool: pg.Pool | undefined;
 
-	// One connection per instance. Serverless scales by process, so pg's default
-	// pool of 10 multiplies by every concurrent instance and exhausts the
-	// provider's connection limit long before it does anything useful.
-	max: 1,
-	idleTimeoutMillis: 10_000,
-	connectionTimeoutMillis: 10_000
+function connect(): pg.Pool {
+	if (pool) return pool;
+
+	if (!DATABASE_URL) {
+		throw new Error(
+			'DATABASE_URL is not configured. The inquiry form needs a database; ' +
+				'the rest of the site does not. Set it in the deployment environment.'
+		);
+	}
+
+	pool = new pg.Pool({
+		connectionString: DATABASE_URL,
+		...(needsTls(DATABASE_URL) ? { ssl: { rejectUnauthorized: true } } : {}),
+
+		// One connection per instance. Serverless scales by process, so pg's
+		// default pool of 10 multiplies by every concurrent instance and exhausts
+		// the provider's connection limit long before it does anything useful.
+		max: 1,
+		idleTimeoutMillis: 10_000,
+		connectionTimeoutMillis: 10_000
+	});
+
+	return pool;
+}
+
+/**
+ * A Proxy so every call site keeps writing `db.select(...)` unchanged while the
+ * underlying pool is created on first use. The alternative — threading a
+ * `getDb()` through fifteen call sites — would put the laziness in every
+ * repository instead of in the one place that owns the connection.
+ */
+export const db: ReturnType<typeof drizzle> = new Proxy({} as ReturnType<typeof drizzle>, {
+	get(_target, property, receiver) {
+		const instance = drizzle(connect(), { schema });
+		return Reflect.get(instance, property, receiver);
+	}
 });
-
-export const db = drizzle(client, { schema });

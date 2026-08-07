@@ -1,0 +1,46 @@
+/*
+ * Injected at screenshot time via Playwright's `stylePath`. Never shipped.
+ *
+ * Playwright's `animations: 'disabled'` stops CSS animations, CSS transitions
+ * and Web Animations — it does NOT stop GSAP, which drives inline styles from
+ * its own requestAnimationFrame ticker, and it does not stop a three.js render
+ * loop. Both would make every baseline a coin toss, so they are neutralised
+ * here instead.
+ */
+
+/* Belt and braces over Playwright's own animation freeze. */
+*,
+*::before,
+*::after {
+	transition-duration: 0s !important;
+	transition-delay: 0s !important;
+	animation-duration: 0s !important;
+	animation-delay: 0s !important;
+	animation-iteration-count: 1 !important;
+	caret-color: transparent !important;
+}
+
+/*
+ * GSAP writes opacity and transform inline during reveals, at whatever value
+ * the tween happened to reach. Forcing the RESTING state is what makes the
+ * screenshot deterministic — and the resting state is also what a
+ * reduced-motion visitor sees, so the baseline is a real state rather than an
+ * artificial one.
+ */
+[data-hero],
+.cards > li,
+.projects > li,
+.principles > li,
+.process > li,
+.closing-content,
+.split-line {
+	opacity: 1 !important;
+	transform: none !important;
+}
+
+/* The aperture motif is scroll-driven; pin it fully drawn. */
+.aperture line,
+.aperture circle {
+	transform: scaleX(1) !important;
+	opacity: 1 !important;
+}

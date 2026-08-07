@@ -12,31 +12,60 @@ import { defineEnvVars } from '@sveltejs/kit/env';
  * A validator that returns `undefined` describes an optional variable.
  */
 
-function required(name: string) {
-	return (value: string | undefined): string => {
-		if (value === undefined || value.trim() === '') {
-			throw new Error(`${name} is required but was empty or unset.`);
-		}
-		return value;
-	};
-}
-
+/**
+ * There is deliberately no `required()` helper any more.
+ *
+ * Every variable here now either has a production default or is genuinely
+ * optional, because a validator that throws runs during PRERENDERING and takes
+ * the whole build down. That turned three unset dashboard variables into a
+ * failed Vercel deployment for a site that is almost entirely static and needs
+ * none of them to render. Where a value really is needed, the feature that needs
+ * it refuses at the point of use and says why — see inquiry.remote.ts.
+ */
 function optional(value: string | undefined): string | undefined {
 	return value === undefined || value.trim() === '' ? undefined : value;
 }
 
-function postgresUrl(value: string | undefined): string {
-	const url = required('DATABASE_URL')(value);
-	if (!/^postgres(ql)?:\/\//.test(url)) {
+/**
+ * OPTIONAL at build time, validated when present.
+ *
+ * Requiring it meant `vite build` failed on Vercel with "DATABASE_URL is
+ * required but was empty or unset" before a database had been provisioned —
+ * and it fails during PRERENDERING, which is the part of the build that needs
+ * no database at all. All but one route here is static marketing content.
+ *
+ * So the site builds and deploys without a database, and the one feature that
+ * needs one — the inquiry form — fails loudly at the point of use instead. See
+ * src/lib/server/db/index.ts. A missing database now breaks the form rather
+ * than the deployment, which is the correct blast radius.
+ */
+function postgresUrl(value: string | undefined): string | undefined {
+	if (!value?.trim()) return undefined;
+	if (!/^postgres(ql)?:\/\//.test(value)) {
 		throw new Error(
-			`DATABASE_URL must start with postgres:// or postgresql:// (got "${url.slice(0, 12)}…").`
+			`DATABASE_URL must start with postgres:// or postgresql:// (got "${value.slice(0, 12)}…").`
 		);
 	}
-	return url;
+	return value;
 }
 
+/**
+ * The canonical production values.
+ *
+ * These are DEFAULTS rather than required inputs because they are neither
+ * secret nor deployment-specific: the canonical origin is production even on a
+ * preview deploy (see below), and the contact address is printed on the page.
+ * Requiring them meant a fresh Vercel project failed its first build with
+ * "PUBLIC_ORIGIN is required but was empty or unset" — friction with no
+ * security benefit, and a failure mode that recurs on every new environment.
+ *
+ * They remain overridable; what changed is that forgetting is no longer fatal.
+ */
+const PRODUCTION_ORIGIN = 'https://broadenlabs.com';
+const PRODUCTION_CONTACT = 'hello@broadenlabs.com';
+
 function absoluteOrigin(value: string | undefined): string {
-	const raw = required('PUBLIC_ORIGIN')(value);
+	const raw = value?.trim() ? value : PRODUCTION_ORIGIN;
 	let parsed: URL;
 	try {
 		parsed = new URL(raw);
@@ -54,8 +83,19 @@ function absoluteOrigin(value: string | undefined): string {
 const SITE_ENVS = ['development', 'preview', 'production'] as const;
 type SiteEnv = (typeof SITE_ENVS)[number];
 
+/**
+ * Falls back to Vercel's own VERCEL_ENV, which the platform sets automatically
+ * to production | preview | development.
+ *
+ * This is a safety fix, not a convenience. The demo-content gate fires when the
+ * target is `production`, and PUBLIC_SITE_ENV is not set on a fresh Vercel
+ * project — so a production deploy would have defaulted to `development` and
+ * shipped thirteen fictional case studies, testimonials and team profiles as
+ * real client proof. The gate now arms itself from the platform rather than
+ * relying on someone remembering to add a variable.
+ */
 function siteEnv(value: string | undefined): SiteEnv {
-	const raw = value ?? 'development';
+	const raw = value?.trim() || process.env.VERCEL_ENV || 'development';
 	if (!SITE_ENVS.includes(raw as SiteEnv)) {
 		throw new Error(`PUBLIC_SITE_ENV must be one of ${SITE_ENVS.join(' | ')} (got "${raw}").`);
 	}
@@ -63,7 +103,7 @@ function siteEnv(value: string | undefined): SiteEnv {
 }
 
 function contactEmail(value: string | undefined): string {
-	const raw = required('PUBLIC_CONTACT_EMAIL')(value);
+	const raw = value?.trim() ? value : PRODUCTION_CONTACT;
 	if (!raw.includes('@')) {
 		throw new Error(`PUBLIC_CONTACT_EMAIL must be an email address (got "${raw}").`);
 	}

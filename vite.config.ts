@@ -15,7 +15,20 @@ export default defineConfig({
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true,
 				experimental: { async: true }
 			},
-			adapter: adapter(),
+			/**
+			 * The runtime is PINNED, not inferred.
+			 *
+			 * Left unset, adapter-vercel@7's `resolve_runtime` falls through to
+			 * `get_default_runtime()`, which reads `process.versions.node` of the
+			 * BUILD container and throws "Unsupported Node.js version" for anything
+			 * outside `[22, 24]`. That makes a successful deployment depend on the
+			 * Node version selected in Vercel's project settings — a value that lives
+			 * in a dashboard, is not in this repo, and defaults differently for older
+			 * projects. Passing `runtime` explicitly skips that branch entirely: only
+			 * the key itself is validated, so the build no longer cares what Node the
+			 * container happens to run.
+			 */
+			adapter: adapter({ runtime: 'nodejs24.x' }),
 			preprocess: [mdsvex({ extensions: ['.svx', '.md'] })],
 			extensions: ['.svelte', '.svx', '.md'],
 			/**

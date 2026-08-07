@@ -23,8 +23,21 @@ import { logger } from '#lib/server/observability/logger';
  * adapter is involved.
  */
 
-/** Derived from a value that is stable per environment. See hash.ts. */
+/**
+ * Derived from a value that is stable per environment. See hash.ts.
+ *
+ * `DATABASE_URL` is optional at build time (src/env.ts) so the marketing site
+ * can deploy before a database exists. Asserting it non-null here would hash
+ * every address with `undefined` in that configuration — silently, and
+ * consistently enough that nothing would ever look wrong. Both handlers below
+ * refuse to run instead; neither can do its job without a database anyway.
+ */
 const IP_SALT = DATABASE_URL;
+
+/** Logged once per rejected submission so a misconfigured deploy is visible. */
+function unconfigured(requestId: string, event: 'inquiry' | 'newsletter'): void {
+	logger.error('Rejected: DATABASE_URL is not configured', { requestId, event, outcome: 'error' });
+}
 
 export type InquiryResult =
 	| { readonly status: 'success'; readonly reference: string }
@@ -35,6 +48,11 @@ export type InquiryResult =
 export const submitProjectInquiry = form(inquirySchema, async (data): Promise<InquiryResult> => {
 	const event = getRequestEvent();
 	const requestId = event.locals.requestId;
+
+	if (!IP_SALT) {
+		unconfigured(requestId, 'inquiry');
+		return { status: 'error' };
+	}
 	const ipHash = hashClientAddress(event.getClientAddress(), IP_SALT);
 
 	const fillDurationMs = Number.parseInt(data.elapsedMs, 10);
@@ -135,6 +153,11 @@ export const subscribeToNewsletter = form(
 	async (data): Promise<NewsletterResult> => {
 		const event = getRequestEvent();
 		const requestId = event.locals.requestId;
+
+		if (!IP_SALT) {
+			unconfigured(requestId, 'newsletter');
+			return { status: 'error' };
+		}
 		const ipHash = hashClientAddress(event.getClientAddress(), IP_SALT);
 
 		if (data.website2.trim() !== '') {

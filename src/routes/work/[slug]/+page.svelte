@@ -28,6 +28,7 @@
 <Seo
 	title="{study.client} — {study.project} | Broaden Labs"
 	description={study.summary[0] ?? study.headline}
+	image="/og/work-{study.slug}.png"
 	breadcrumbs={[
 		{ name: 'Work', href: '/work' },
 		{ name: study.client, href: `/work/${study.slug}` }

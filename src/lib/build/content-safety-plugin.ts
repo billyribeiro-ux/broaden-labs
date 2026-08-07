@@ -24,7 +24,11 @@ export function contentSafety(): Plugin {
 			// Vite's own `mode` is not consulted here: `vite build` is `production`
 			// mode for a preview deployment too, and a preview SHOULD show demo
 			// content. The deployment target is its own signal.
-			const target = process.env.PUBLIC_SITE_ENV ?? 'development';
+			// VERCEL_ENV is set by the platform to production | preview | development.
+			// Reading it means the gate arms itself on a real production deploy even
+			// if nobody set PUBLIC_SITE_ENV — which is exactly the case on a fresh
+			// project, and would otherwise have let the demo content through.
+			const target = process.env.PUBLIC_SITE_ENV || process.env.VERCEL_ENV || 'development';
 			const acknowledged = process.env.BROADEN_CONTENT_READY === '1';
 
 			// Imported dynamically so the registry is evaluated at build time, in

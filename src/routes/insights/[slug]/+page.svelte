@@ -27,6 +27,7 @@
 <Seo
 	title="{insight.title} — Broaden Labs"
 	description={insight.dek}
+	image="/og/insights-{insight.slug}.png"
 	kind="article"
 	published={insight.published}
 	author={insight.author}

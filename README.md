@@ -101,20 +101,58 @@ implemented in Safari at all.
 Vercel, via `adapter-vercel@7`. Note it **removed the edge runtime** — everything
 is Node, which is why one `pg` driver serves both local Postgres and production.
 
+The runtime is **pinned to `nodejs24.x` in `vite.config.ts`**, not inferred.
+Unset, the adapter's `resolve_runtime` falls through to reading the _build
+container's_ `process.versions.node` and throws `Unsupported Node.js version` for
+anything outside 22 or 24 — making a green deployment depend on a dropdown in the
+Vercel dashboard rather than on anything in this repo. `packageManager` and
+`engines.node` are pinned for the same reason: so the build is reproducible from
+the repository alone.
+
 Security headers are in `vercel.json`, not the Kit config, and
-`docs/SECURITY-HEADERS.md` explains why they cannot work anywhere else.
+`docs/SECURITY-HEADERS.md` explains why they cannot work anywhere else. They do
+apply despite the Build Output API also emitting a `routes` array: Vercel's
+`vercel.json` reference states `routes` may be used "alongside `rewrites`,
+`redirects`, `headers`, `cleanUrls`, and `trailingSlash`", and its `headers`
+example is described as configuring response headers "for static files, Vercel
+Functions, and a wildcard that matches all routes".
+
+### Environment variables
+
+A preview deployment needs **none of these** — the site is built so a first
+deployment succeeds before any database or secret exists. A production
+deployment needs exactly one, and it is a gate rather than a setting.
+
+| Variable                | Required            | Effect if unset                                                            |
+| ----------------------- | ------------------- | -------------------------------------------------------------------------- |
+| `BROADEN_CONTENT_READY` | **Production only** | Production build **fails** and lists every demo record. This is the point. |
+| `DATABASE_URL`          | For the form only   | Site builds and serves; the inquiry form returns an error and logs why.    |
+| `PUBLIC_ORIGIN`         | No                  | Defaults to `https://broadenlabs.com`.                                     |
+| `PUBLIC_CONTACT_EMAIL`  | No                  | Defaults to `hello@broadenlabs.com`.                                       |
+| `PUBLIC_SITE_ENV`       | No                  | Falls back to `VERCEL_ENV`, which Vercel always sets.                      |
+
+`PUBLIC_SITE_ENV` falling back to `VERCEL_ENV` is a safety property, not a
+convenience. The content gate keys off it, so an unset variable used to mean
+"development" on Vercel — and a production deploy would have shipped thirteen
+fictional case studies, testimonials and metrics as real client proof.
+
+Note what is **not** set: `kit.origin`. Left undefined, Kit derives the origin
+per request from the adapter, so remote-function CSRF checks pass on preview
+deployments whose `*.vercel.app` URL is unknown at build time. Pinning it to the
+production domain would 403 every form submission on every preview.
 
 **Before launch:**
 
-1. Set `DATABASE_URL` to a pooled connection string, and `PUBLIC_ORIGIN` /
-   `PUBLIC_SITE_ENV` for the environment.
-2. Run migrations at deploy time from CI — never inside a request handler, where
+1. Set `BROADEN_CONTENT_READY` only once the fictional content has been replaced
+   with real work — see `docs/SECURITY-HEADERS.md` and `src/lib/content/demo/`.
+2. Set `DATABASE_URL` to a pooled connection string.
+3. Run migrations at deploy time from CI — never inside a request handler, where
    concurrent cold starts race the migration lock.
-3. Have counsel write `/privacy`, `/terms` and `/accessibility`. They currently
+4. Have counsel write `/privacy`, `/terms` and `/accessibility`. They currently
    state that no policy exists and are `noindex` and absent from the sitemap.
-4. Verify CSP against `pnpm build && pnpm preview` — **never** `pnpm dev`, which
+5. Verify CSP against `pnpm build && pnpm preview` — **never** `pnpm dev`, which
    strips hashes and injects `unsafe-inline` for HMR.
-5. Consider a dedicated secret for the IP hash salt; it currently derives from
+6. Consider a dedicated secret for the IP hash salt; it currently derives from
    `DATABASE_URL` (stable per environment, but a real secret is better).
 
 ## Licence notes worth pre-declaring

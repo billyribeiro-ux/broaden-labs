@@ -34,6 +34,13 @@ const DB_WRITING_SPECS = '**/inquiry*.e2e.{ts,js}';
  */
 const PREFERENCE_SPECS = '**/*.reduced.e2e.{ts,js}';
 
+/**
+ * Visual-regression specs. Chromium-only and platform-specific — see the note
+ * in visual.e2e.ts. Excluded from every other project so a WebKit run does not
+ * compare its 2x-scaled render against a 1x Chromium baseline.
+ */
+const VISUAL_SPECS = '**/visual.e2e.{ts,js}';
+
 export default defineConfig({
 	testDir: 'src',
 	testMatch: '**/*.e2e.{ts,js}',
@@ -62,15 +69,22 @@ export default defineConfig({
 		trace: 'on-first-retry'
 	},
 
+	/**
+	 * `{platform}` is retained in the snapshot path on purpose. A macOS baseline
+	 * compared against a Linux CI render fails on font hinting alone, every time.
+	 * Each platform owns its own committed baselines.
+	 */
+	snapshotPathTemplate: '{testDir}/__visual/{platform}/{arg}{ext}',
+
 	projects: [
 		{
 			name: 'chromium',
-			testIgnore: [DB_WRITING_SPECS, PREFERENCE_SPECS],
+			testIgnore: [DB_WRITING_SPECS, PREFERENCE_SPECS, VISUAL_SPECS],
 			use: { ...devices['Desktop Chrome'] }
 		},
 		{
 			name: 'firefox',
-			testIgnore: [DB_WRITING_SPECS, PREFERENCE_SPECS],
+			testIgnore: [DB_WRITING_SPECS, PREFERENCE_SPECS, VISUAL_SPECS],
 			use: { ...devices['Desktop Firefox'] }
 		},
 
@@ -78,7 +92,7 @@ export default defineConfig({
 		// sets 1; mixing them in one screenshot suite doubles WebKit baselines.
 		{
 			name: 'webkit',
-			testIgnore: [DB_WRITING_SPECS, PREFERENCE_SPECS],
+			testIgnore: [DB_WRITING_SPECS, PREFERENCE_SPECS, VISUAL_SPECS],
 			use: { ...devices['Desktop Safari'] }
 		},
 
@@ -87,7 +101,7 @@ export default defineConfig({
 		// set an explicit viewport rather than pretending a device matches.
 		{
 			name: 'mobile',
-			testIgnore: [DB_WRITING_SPECS, PREFERENCE_SPECS],
+			testIgnore: [DB_WRITING_SPECS, PREFERENCE_SPECS, VISUAL_SPECS],
 			use: { ...devices['iPhone 14'] }
 		},
 
@@ -98,7 +112,7 @@ export default defineConfig({
 		{
 			name: 'no-js',
 			testMatch: '**/*.nojs.e2e.{ts,js}',
-			testIgnore: [DB_WRITING_SPECS, PREFERENCE_SPECS],
+			testIgnore: [DB_WRITING_SPECS, PREFERENCE_SPECS, VISUAL_SPECS],
 			use: { ...devices['Desktop Chrome'], javaScriptEnabled: false }
 		},
 
@@ -119,6 +133,12 @@ export default defineConfig({
 		 * The no-JS inquiry specs set `javaScriptEnabled: false` at file level, so
 		 * both the enhanced and the fallback paths run here, in order.
 		 */
+		{
+			name: 'visual',
+			testMatch: VISUAL_SPECS,
+			use: { ...devices['Desktop Chrome'] }
+		},
+
 		{
 			name: 'forms',
 			testMatch: DB_WRITING_SPECS,

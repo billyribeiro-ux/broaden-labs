@@ -28,6 +28,7 @@
 <Seo
 	title={service.metaTitle}
 	description={service.metaDescription}
+	image="/og/services.png"
 	breadcrumbs={[
 		{ name: 'Services', href: '/services' },
 		{ name: service.name, href: `/services/${service.slug}` }

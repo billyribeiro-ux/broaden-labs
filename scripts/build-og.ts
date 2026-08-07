@@ -2,6 +2,8 @@ import { chromium } from 'playwright';
 import { readFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { CASE_STUDIES } from '../src/lib/content/demo/case-studies.ts';
+import { INSIGHTS } from '../src/lib/content/insights.ts';
 
 /**
  * Renders the social-share image. Brief §84, §108.
@@ -14,6 +16,13 @@ import path from 'node:path';
  *
  * The artwork is ours: the aperture motif and the real subset webfont, so it is
  * unambiguously licensable (§108 bans stock imagery for exactly this reason).
+ *
+ * DRIVEN FROM THE CONTENT MODULES, not a hand-written list. Google's preferred
+ * image guidance (2 March 2026) says to choose an image "relevant and
+ * representative of the page" and explicitly to avoid a generic one such as a
+ * site logo — so every case study and article gets its own headline, and adding
+ * content to the registry automatically produces its image. A hand-maintained
+ * list here would drift and silently reintroduce the generic fallback.
  *
  * Run: pnpm og:build
  */
@@ -33,7 +42,7 @@ const monoFont = readFileSync(
 	path.join(root, 'src/lib/assets/fonts/jetbrains-var-latin.woff2')
 ).toString('base64');
 
-const render = (entry) => `<!doctype html>
+const render = (entry: OgPage) => `<!doctype html>
 <html><head><meta charset="utf-8" /><style>
   @font-face { font-family: 'Bricolage'; src: url(data:font/woff2;base64,${displayFont}) format('woff2'); font-weight: 200 800; }
   @font-face { font-family: 'JetBrains'; src: url(data:font/woff2;base64,${monoFont}) format('woff2'); font-weight: 100 800; }
@@ -50,6 +59,10 @@ const render = (entry) => `<!doctype html>
        max-width: 15ch; font-variation-settings: 'opsz' 96; position: relative; }
   .mark { font-size: 30px; font-weight: 800; letter-spacing: 0.04em;
           font-variation-settings: 'opsz' 96; position: relative; }
+  .foot { display: flex; align-items: center; gap: 20px; position: relative; }
+  .demo { font-family: 'JetBrains'; font-size: 16px; letter-spacing: 0.14em;
+          text-transform: uppercase; color: #289DD7; border: 1px solid #289DD7;
+          padding: 6px 12px; }
 </style></head>
 <body>
   <svg class="field" viewBox="0 0 1200 630" preserveAspectRatio="none">
@@ -66,22 +79,34 @@ const render = (entry) => `<!doctype html>
   </svg>
   <div class="eyebrow">${entry.eyebrow}</div>
   <h1>${entry.headline}</h1>
-  <div class="mark">BROADEN</div>
+  <div class="foot">
+    <span class="mark">BROADEN</span>
+    ${entry.demo ? '<span class="demo">Demo — fictional client</span>' : ''}
+  </div>
 </body></html>`;
 
+interface OgPage {
+	readonly slug: string;
+	readonly eyebrow: string;
+	readonly headline: string;
+	/** Marks the artwork as representing fictional content. */
+	readonly demo?: boolean;
+}
+
 /**
- * Per-route images.
+ * Per-route images, DRIVEN FROM THE CONTENT MODULES.
  *
  * Google's preferred-image guidance (2 March 2026) says to choose an image
- * "relevant and representative of the page" and to AVOID a generic one such as
- * a site logo. One brand image for every route is exactly the thing it warns
- * against, so the top-level routes get their own headline.
+ * "relevant and representative of the page" and explicitly to AVOID a generic
+ * one such as a site logo. One brand image for every route is exactly what it
+ * warns against.
  *
- * The dynamic routes (/work/[slug], /insights/[slug]) still fall back to the
- * default. That is a stated gap in docs/SEO.md, not an oversight — closing it
- * is a loop over the content modules, which is the obvious next step.
+ * The case-study and article lists are DERIVED rather than hand-written, so
+ * adding content to the registry produces its image automatically. A duplicated
+ * list here would drift and silently reintroduce the generic fallback for
+ * whatever it missed.
  */
-const PAGES = [
+const TOP_LEVEL: readonly OgPage[] = [
 	{
 		slug: 'default',
 		eyebrow: 'Software · Platforms · Digital Experiences',
@@ -113,6 +138,29 @@ const PAGES = [
 		headline: "Tell us what you're trying to make possible."
 	}
 ];
+
+/**
+ * Case-study cards carry a DEMO badge on the artwork itself.
+ *
+ * A social card is the one surface where a fictional client name travels
+ * WITHOUT the page's own disclosure attached to it: someone shares the link,
+ * the card renders in a feed, and nothing on it says the engagement is
+ * invented. Putting the label in the image means it travels with the claim.
+ */
+const WORK: readonly OgPage[] = CASE_STUDIES.map((study) => ({
+	slug: `work-${study.slug}`,
+	eyebrow: `${study.client} · ${study.category}`,
+	headline: study.headline,
+	demo: true
+}));
+
+const ARTICLES: readonly OgPage[] = INSIGHTS.map((insight) => ({
+	slug: `insights-${insight.slug}`,
+	eyebrow: insight.category,
+	headline: insight.title
+}));
+
+const PAGES: readonly OgPage[] = [...TOP_LEVEL, ...WORK, ...ARTICLES];
 
 const browser = await chromium.launch();
 const page = await browser.newPage({
