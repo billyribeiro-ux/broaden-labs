@@ -60,7 +60,26 @@ test.describe('every route renders and is accessible', () => {
 	});
 });
 
+/**
+ * Tab-order assertions do not run on WebKit.
+ *
+ * This is a platform setting, not our markup. macOS ships with "Press Tab to
+ * highlight each item on a webpage" OFF, so Safari and Playwright's WebKit do
+ * not move focus to LINKS on Tab at all — pressing Tab five times on the
+ * homepage leaves document.activeElement as <body> every time, while Firefox
+ * reports the correct order (skip link → wordmark → Work → Services → About).
+ * Playwright exposes no way to enable Full Keyboard Access.
+ *
+ * Skipping is honest here in a way that loosening the assertion would not be:
+ * the tab order IS verified, on two engines, and a WebKit user who has enabled
+ * the setting gets the same order because it comes from document order.
+ */
 test.describe('keyboard access', () => {
+	test.skip(
+		({ browserName }) => browserName === 'webkit',
+		'WebKit does not make links tabbable unless macOS Full Keyboard Access is on'
+	);
+
 	test('the skip link is the first stop and moves focus into main', async ({ page }) => {
 		// Must start from a FRESH document load: SvelteKit moves focus to <body>
 		// after every client-side navigation, so tabbing after a goto() would test
@@ -130,7 +149,29 @@ test.describe('mobile navigation', () => {
 		await page.keyboard.press('Escape');
 		await expect(dialog).toBeHidden();
 		await expect(trigger).toHaveAttribute('aria-expanded', 'false');
-		// <dialog> restores focus to the invoker itself — nothing does it manually.
+	});
+
+	/**
+	 * Focus restoration is asserted separately because it cannot be observed on
+	 * WebKit. `<dialog>` restores focus to whatever held it before showModal(),
+	 * and on macOS clicking a button does not focus it — so on WebKit there is no
+	 * invoker to return to and the assertion would be testing the platform's
+	 * click-focus convention rather than our dialog.
+	 *
+	 * Focusing the trigger explicitly first would make the test pass everywhere
+	 * and prove less: it would no longer describe what happens to a real visitor
+	 * who clicked.
+	 */
+	test('restores focus to the trigger on close', async ({ page, browserName }) => {
+		test.skip(browserName === 'webkit', 'macOS does not focus a button on click');
+
+		await page.goto('/');
+		const trigger = page.getByRole('button', { name: 'Open menu' });
+		await trigger.click();
+		await expect(page.getByRole('dialog', { name: 'Site menu' })).toBeVisible();
+
+		await page.keyboard.press('Escape');
+		// <dialog> does this itself — nothing in MobileNav restores focus manually.
 		await expect(trigger).toBeFocused();
 	});
 

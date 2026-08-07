@@ -182,6 +182,14 @@ test.describe('demo content is labelled wherever it appears', () => {
 });
 
 test.describe('architecture diagram', () => {
+	// Same WebKit limitation as the shell keyboard tests: Tab does not move focus
+	// without macOS Full Keyboard Access. The hover/click paths below are still
+	// covered on WebKit by the a11y and rendering tests.
+	test.skip(
+		({ browserName }) => browserName === 'webkit',
+		'WebKit does not move focus on Tab unless macOS Full Keyboard Access is on'
+	);
+
 	test('is keyboard operable and announces each node', async ({ page }) => {
 		await page.goto('/work/meridian-markets');
 

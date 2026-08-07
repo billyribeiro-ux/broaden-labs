@@ -5,10 +5,27 @@ import { defineConfig, devices } from '@playwright/test';
  * hashing, prerendering and `preload` behaviour all differ in dev, so a
  * dev-validated assertion proves nothing about what ships.
  *
- * `playwright install` is deliberately NOT part of this command (the scaffold
- * had it inline). It re-downloads browsers on every run and hides real failures
- * behind a download; `pnpm test:e2e:install` does it once.
+ * `playwright install` is deliberately NOT part of the webServer command (the
+ * scaffold had it inline). It re-downloads browsers on every run and hides real
+ * failures behind a download; `pnpm test:e2e:install` does it once.
  */
+
+/**
+ * Specs that WRITE to the database.
+ *
+ * These are quarantined into one serial project. The application throttles by
+ * client address and every Playwright browser connects from 127.0.0.1, so all
+ * projects share a single throttle bucket and a single set of rows. Run in
+ * parallel across five projects, they truncate each other's data mid-test — a
+ * full run produced 81 failures that were entirely cross-project interference,
+ * while each project passed alone.
+ *
+ * The alternative — weakening the throttle or the reset for the benefit of the
+ * tests — would mean the suite no longer exercises the shipped configuration.
+ * Quarantining keeps the production rule intact.
+ */
+const DB_WRITING_SPECS = '**/inquiry*.e2e.{ts,js}';
+
 export default defineConfig({
 	testDir: 'src',
 	testMatch: '**/*.e2e.{ts,js}',
@@ -38,25 +55,42 @@ export default defineConfig({
 	},
 
 	projects: [
-		{ name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-		{ name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+		{
+			name: 'chromium',
+			testIgnore: DB_WRITING_SPECS,
+			use: { ...devices['Desktop Chrome'] }
+		},
+		{
+			name: 'firefox',
+			testIgnore: DB_WRITING_SPECS,
+			use: { ...devices['Desktop Firefox'] }
+		},
 
 		// devices['Desktop Safari'] sets deviceScaleFactor 2 while Desktop Chrome
 		// sets 1; mixing them in one screenshot suite doubles WebKit baselines.
-		{ name: 'webkit', use: { ...devices['Desktop Safari'] } },
+		{
+			name: 'webkit',
+			testIgnore: DB_WRITING_SPECS,
+			use: { ...devices['Desktop Safari'] }
+		},
 
 		// Playwright ships no descriptor at several of the widths brief §82
 		// requires (820, 1024, 1280, 1440, 1728, 1920, 2560), so responsive specs
 		// set an explicit viewport rather than pretending a device matches.
-		{ name: 'mobile', use: { ...devices['iPhone 14'] } },
+		{
+			name: 'mobile',
+			testIgnore: DB_WRITING_SPECS,
+			use: { ...devices['iPhone 14'] }
+		},
 
 		/**
-		 * Brief §116: the site must work without JavaScript. This is a first-class
-		 * project rather than a per-test override so the guarantee cannot rot.
+		 * Brief §116: the site must work without JavaScript. A first-class project
+		 * rather than a per-test override, so the guarantee cannot quietly rot.
 		 */
 		{
 			name: 'no-js',
 			testMatch: '**/*.nojs.e2e.{ts,js}',
+			testIgnore: DB_WRITING_SPECS,
 			use: { ...devices['Desktop Chrome'], javaScriptEnabled: false }
 		},
 
@@ -69,6 +103,20 @@ export default defineConfig({
 			name: 'reduced-motion',
 			testMatch: '**/*.reduced.e2e.{ts,js}',
 			use: { ...devices['Desktop Chrome'], contextOptions: { reducedMotion: 'reduce' } }
+		},
+
+		/**
+		 * The database-writing project. One worker, no parallelism, so the shared
+		 * throttle bucket and shared rows belong to exactly one test at a time.
+		 * The no-JS inquiry specs set `javaScriptEnabled: false` at file level, so
+		 * both the enhanced and the fallback paths run here, in order.
+		 */
+		{
+			name: 'forms',
+			testMatch: DB_WRITING_SPECS,
+			fullyParallel: false,
+			workers: 1,
+			use: { ...devices['Desktop Chrome'] }
 		}
 	]
 });
