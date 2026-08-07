@@ -24,6 +24,7 @@
 	} from '#lib/content/narrative';
 	import { PUBLIC_CONTACT_EMAIL } from '$app/env/public';
 	import { heroSequence, splitReveal, reveal } from '#lib/animation/motion';
+	import WebGLStage from '#lib/components/three/WebGLStage.svelte';
 
 	/**
 	 * Homepage. Brief §111 narrative order.
@@ -48,6 +49,14 @@
 
 <!-- 1 · Arrival ─────────────────────────────────────────────────────────── -->
 <section class="section hero">
+	<!--
+		The stage is a sibling of the content, not a wrapper, and sits at
+		z-index: var(--z-below) with pointer-events: none. Brief §83: no meaningful
+		information inside a canvas, and nothing in it may intercept a click meant
+		for a CTA.
+	-->
+	<WebGLStage />
+
 	<div class="container">
 		<div class="grid">
 			<div class="span-full content" {@attach heroSequence()}>
@@ -307,7 +316,13 @@
 
 <style>
 	.hero {
+		position: relative;
+		/* Contains the absolutely-positioned stage. */
+		isolation: isolate;
 		padding-block-start: var(--space-3xl);
+		/* The field needs room to read as a field; below this the composition is
+		   cropped to a band and stops meaning anything. */
+		min-block-size: 78svh;
 	}
 
 	/*
