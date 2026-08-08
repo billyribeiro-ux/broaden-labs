@@ -125,6 +125,14 @@
 		not sell or share personal information as those terms are defined there.
 	</p>
 	<p>
+		Broaden Labs operates from Connecticut. If you are a Connecticut resident, the Connecticut Data
+		Privacy Act gives you rights to confirm whether we process your personal data, access and
+		correct it, delete it, obtain a portable copy, and opt out of targeted advertising, sale, or
+		profiling with legal effects. We do none of those last three. We honour these requests from
+		anyone who makes one, whether or not the Act's thresholds apply to a studio of our size, and you
+		may appeal a refusal by replying to our response.
+	</p>
+	<p>
 		To exercise any of these, email
 		<a href="mailto:{PUBLIC_CONTACT_EMAIL}">{PUBLIC_CONTACT_EMAIL}</a>. We will respond within 30
 		days. We may ask you to confirm the email address you originally used, because it is the only

@@ -6,14 +6,13 @@
  * verifiable from the codebase or must be confirmed by the owner — nothing is
  * invented to make a page look finished.
  *
- * ⚠️ BEFORE LAUNCH, confirm two values with counsel:
+ * ⚠️ BEFORE LAUNCH, confirm one remaining value with counsel:
  *
  *   1. `ENTITY` — the registered legal name, if Broaden Labs trades under one.
  *      Currently the trading name, which is accurate but not a company number.
- *   2. `JURISDICTION` — narrowed to a state. "United States" is inferred from
- *      hard evidence (the .com registration, the Vercel account, and the
- *      database region `aws-us-east-1`), NOT guessed, but a governing-law clause
- *      is stronger when it names a state.
+ *   2. `JURISDICTION` — RESOLVED. Confirmed by the owner as Connecticut, so the
+ *      governing-law clause names a state rather than a country, and the privacy
+ *      policy names the Connecticut Data Privacy Act by name.
  *
  * Everything else below was read out of the code it describes:
  * `src/lib/server/db/schema.ts` for the fields, `hash.ts` for the IP handling,
@@ -23,8 +22,8 @@
 /** Trading name. See the warning above. */
 export const ENTITY = 'Broaden Labs';
 
-/** See the warning above — narrow this to a state before launch. */
-export const JURISDICTION = 'the United States';
+/** Confirmed by the owner: Broaden Labs operates from Connecticut. */
+export const JURISDICTION = 'the State of Connecticut, United States';
 
 /**
  * The date these documents last changed in a way that affects their meaning.
