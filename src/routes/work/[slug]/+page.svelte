@@ -356,10 +356,17 @@
 		line-height: var(--lh-tight);
 		letter-spacing: var(--tracking-display);
 		text-wrap: balance;
+		/* The colour change had no transition at all, so the largest interactive
+		   target on the page was also the only one that changed state in a single
+		   frame. Same enter/exit pair as everything else. */
+		transition: color var(--dur-instant) var(--ease-exit);
 	}
 
-	.next-link:hover .next-headline {
+	.next-link:hover .next-headline,
+	.next-link:focus-visible .next-headline {
 		color: var(--accent);
+		transition-duration: var(--dur-fast);
+		transition-timing-function: var(--ease-entrance);
 	}
 
 	.next-actions {

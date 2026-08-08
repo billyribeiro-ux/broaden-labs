@@ -137,11 +137,18 @@
 
 		/* Reversible interactions enter slower and leave faster — the asymmetry is
 		   what stops the motion reading as mechanical. This declares the LEAVING
-		   state; :hover overrides with the entrance pair. */
+		   state; :hover overrides with the entrance pair.
+
+		   `transform` is in this list for the RELEASE of a press. It was absent,
+		   so the 1px depression below snapped back in a single frame — the only
+		   state change on the button with no easing on either side. Going down is
+		   instant because the user has already committed to it; coming back up
+		   settles. */
 		transition:
 			background-color var(--dur-instant) var(--ease-exit),
 			border-color var(--dur-instant) var(--ease-exit),
-			color var(--dur-instant) var(--ease-exit);
+			color var(--dur-instant) var(--ease-exit),
+			transform var(--dur-fast) var(--ease-entrance);
 
 		/* SC 2.5.8 Target Size (Minimum). `target-size` is the only rule the
 		   wcag22aa axe tag adds, and buttons in a header are where it fires. */
@@ -158,7 +165,10 @@
 		transition: transform var(--dur-instant) var(--ease-exit);
 	}
 
-	.button:hover .arrow {
+	/* Keyboard parity: the arrow is the button's only directional cue, and a
+	   cue that only a pointer can reach is not a cue for everyone. */
+	.button:hover .arrow,
+	.button:focus-visible .arrow {
 		transform: translateX(var(--dist-xs));
 		transition-duration: var(--dur-fast);
 		transition-timing-function: var(--ease-entrance);
@@ -203,6 +213,10 @@
 	/* ── pressed ─────────────────────────────────────────────────────────── */
 	.button:active {
 		transform: translateY(1px);
+		/* Going DOWN is immediate; coming back up uses the base transition above.
+		   That asymmetry is the same rule the rest of the system follows, applied
+		   to the one direction where "instant" is the correct answer. */
+		transition-duration: var(--dur-instant);
 	}
 
 	/* ── disabled / loading ──────────────────────────────────────────────── */

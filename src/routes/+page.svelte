@@ -107,7 +107,13 @@
 <section class="section section--tight statement">
 	<div class="container">
 		<Aperture mode="bracket" />
-		<div class="grid">
+		<!--
+			The two columns are one beat, not two: the statement lands, then the
+			supporting body follows a stagger behind it. `:scope > *` rather than a
+			class list because the children here are components that own their own
+			markup — a page should not be selecting on another component's internals.
+		-->
+		<div class="grid" {@attach reveal({ children: ':scope > *', stagger: 0.14, start: 'top 80%' })}>
 			<div class="span-7-5">
 				<DisplayHeading size="lg" measure={false}>
 					{STATEMENT.headline}
@@ -172,10 +178,24 @@
 </section>
 
 <!-- 5 · Philosophy — first surface inversion ────────────────────────────── -->
-<section class="section" data-surface="light">
+<section class="section seamed" data-surface="light">
 	<div class="container">
+		<!--
+			The seam. §110 wants the inversion to work as narrative pacing, and until
+			now the surface simply changed with nothing marking the moment — the
+			single largest beat on the page was the only one with no punctuation.
+			`bracket` grows from its centre outward to two terminators, which is the
+			motif reading as an aperture opening onto a new surface; `connector`
+			closes the passage again where the page returns to dark. Two seams for
+			two inversions, and no more, for the same reason there are only two
+			inversions.
+		-->
+		<Aperture mode="bracket" />
 		<div class="grid">
-			<div class="span-8-4 philosophy">
+			<div
+				class="span-8-4 philosophy"
+				{@attach reveal({ children: ':scope > *', stagger: 0.1, start: 'top 80%' })}
+			>
 				<Eyebrow>{PHILOSOPHY.eyebrow}</Eyebrow>
 				<DisplayHeading size="md" measure={false}>{PHILOSOPHY.headline}</DisplayHeading>
 				<div class="philosophy-body">
@@ -241,15 +261,23 @@
 </section>
 
 <!-- 8 · Technology — second inversion, back to dark ─────────────────────── -->
-<section class="section technology">
+<section class="section technology seamed">
 	<div class="container">
-		<div class="grid">
+		<!-- The closing seam of the pair opened above the philosophy section. -->
+		<Aperture mode="connector" />
+		<div class="grid" {@attach reveal({ children: ':scope > *', stagger: 0.14, start: 'top 80%' })}>
 			<div class="span-7-5">
 				<DisplayHeading size="sm" measure={false}>{TECHNOLOGY.headline}</DisplayHeading>
 			</div>
 			<div class="span-5-7 body-column">
 				<p>{TECHNOLOGY.body}</p>
-				<ul class="labels" role="list">
+				<!--
+					The stack labels get their own tighter beat: they are a list of
+					small equal things, which is exactly what --stagger-tight is for,
+					and they should read as one texture arriving rather than as eight
+					separate items.
+				-->
+				<ul class="labels" role="list" {@attach reveal({ children: 'li', stagger: 0.024 })}>
 					{#each TECHNOLOGY.labels as label (label)}
 						<li>{label}</li>
 					{/each}
@@ -263,7 +291,10 @@
 {#if testimonial}
 	<section class="section section--tight">
 		<div class="container">
-			<figure class="quote">
+			<figure
+				class="quote"
+				{@attach reveal({ children: 'blockquote, figcaption', stagger: 0.12, start: 'top 82%' })}
+			>
 				<Aperture mode="gate" />
 				<blockquote>
 					<p>{testimonial.quote}</p>
@@ -287,7 +318,16 @@
 				<DisplayHeading size="md">Notes from the work.</DisplayHeading>
 			</div>
 		</div>
-		<ul class="articles" role="list">
+		<!--
+			Rows in a list, not cards in a grid: they arrive one after another down
+			the column, so the stagger is looser than the capability cards' and the
+			travel shorter — a row that rises far reads as the rule above it moving.
+		-->
+		<ul
+			class="articles"
+			role="list"
+			{@attach reveal({ children: 'li', stagger: 0.1, distance: 12 })}
+		>
 			{#each latestInsights as insight (insight.slug)}
 				<li><ArticleCard {insight} /></li>
 			{/each}
@@ -302,7 +342,16 @@
 <section class="section closing">
 	<div class="container">
 		<div class="grid">
-			<div class="span-8-4 closing-content" {@attach reveal({ distance: 24 })}>
+			<!--
+				The close is the page's last beat and gets the page's longest travel
+				and loosest stagger: headline, then body, then the CTAs, then the
+				microcopy. Revealing the block as one unit (which is what a bare
+				`reveal({ distance: 24 })` did) threw all four away at once.
+			-->
+			<div
+				class="span-8-4 closing-content"
+				{@attach reveal({ children: ':scope > *', stagger: 0.09, distance: 24, start: 'top 82%' })}
+			>
 				<DisplayHeading size="lg" measure={false}>{CLOSING.headline}</DisplayHeading>
 				<p class="closing-body">{CLOSING.body}</p>
 				<div class="actions">
@@ -321,11 +370,18 @@
 <section class="section section--tight final">
 	<div class="container">
 		<Aperture mode="scale" />
-		<DisplayHeading size="md" measure={false}>{FINAL_BRAND_MOMENT.headline}</DisplayHeading>
-		<div class="final-body">
-			{#each FINAL_BRAND_MOMENT.body as paragraph (paragraph)}
-				<p>{paragraph}</p>
-			{/each}
+		<!--
+			The aperture is deliberately NOT part of this reveal. It has its own
+			scroll driver writing `--aperture`, and putting it inside a reveal that
+			also writes opacity and transform would give one element two owners.
+		-->
+		<div class="final-copy" {@attach reveal({ children: ':scope > *', stagger: 0.12 })}>
+			<DisplayHeading size="md" measure={false}>{FINAL_BRAND_MOMENT.headline}</DisplayHeading>
+			<div class="final-body">
+				{#each FINAL_BRAND_MOMENT.body as paragraph (paragraph)}
+					<p>{paragraph}</p>
+				{/each}
+			</div>
 		</div>
 	</div>
 </section>
@@ -335,6 +391,14 @@
 		position: relative;
 		/* Contains the absolutely-positioned stage. */
 		isolation: isolate;
+		/*
+		 * The stage overhangs this box by 6% at each edge so its parallax has
+		 * somewhere to travel from. `clip` — not `hidden` — because clip does NOT
+		 * make this a scroll container: no scrollport is created, so nothing
+		 * inside can be scrolled to, no scroll anchoring is introduced, and any
+		 * descendant scroll-driven timeline still resolves against the document.
+		 */
+		overflow: clip;
 		padding-block-start: var(--space-3xl);
 		/* The field needs room to read as a field; below this the composition is
 		   cropped to a band and stops meaning anything. */
@@ -398,6 +462,21 @@
 	}
 
 	.statement .grid {
+		margin-block-start: var(--space-xl);
+	}
+
+	/**
+	 * A seam needs air on both sides or it is not a seam, it is a collision.
+	 *
+	 * Measured at 1440px before this rule: the philosophy bracket's terminator
+	 * ticks landed 10px above the "HOW WE THINK" eyebrow and the technology
+	 * connector sat 12px off the cap-height of "Technology is a means." Both
+	 * read as an underline attached to the text rather than as a rule marking
+	 * the surface change. --space-xl is the same measure the statement's own
+	 * bracket already uses, so the three instances of the motif on this page are
+	 * spaced identically.
+	 */
+	.seamed .grid {
 		margin-block-start: var(--space-xl);
 	}
 
@@ -637,6 +716,13 @@
 	}
 
 	.final .container {
+		display: grid;
+		gap: var(--space-md);
+	}
+
+	/* Wraps only the copy, so the aperture above keeps its own lifecycle and the
+	   reveal has a container whose children are exactly the two things to stage. */
+	.final-copy {
 		display: grid;
 		gap: var(--space-md);
 	}

@@ -25,15 +25,31 @@ import { MOTION_QUERIES } from './reduced-motion.ts';
  */
 
 export interface RevealOptions {
-	/** Stagger between children, in seconds. */
+	/** Stagger between children, in seconds, at the rich breakpoint. */
 	readonly stagger?: number;
-	/** Distance travelled, in px. */
+	/** Distance travelled, in px, at the rich breakpoint. */
 	readonly distance?: number;
 	/** Selector for the children to stagger. Omit to animate the element itself. */
 	readonly children?: string;
 	/** Fraction of the viewport at which it fires. */
 	readonly start?: string;
 }
+
+/**
+ * How much of the desktop choreography a small screen gets.
+ *
+ * Brief §68: mobile is DESIGNED, not scaled. A stagger tuned for three cards
+ * sitting side by side becomes a queue when the same three stack vertically —
+ * the last card is then a full beat behind a viewport it already fills — and a
+ * 32px rise that reads as a lift across a 1440px row reads as a lurch across a
+ * 390px column. The compact breakpoint therefore travels a shorter distance and
+ * spends a shorter time doing it, rather than replaying the desktop sequence.
+ *
+ * `rich` and `compact` are mutually exclusive by construction (see
+ * reduced-motion.ts), so exactly one of them is ever live, and gsap.matchMedia
+ * reverts the other's tweens when the viewport crosses the boundary.
+ */
+const COMPACT_SCALE = 0.55;
 
 /**
  * Reveals an element (or its children) once, on scroll.
@@ -51,28 +67,42 @@ export function reveal(options: RevealOptions = {}): Attachment<HTMLElement> {
 		const targets = options.children ? node.querySelectorAll(options.children) : [node];
 		if (targets.length === 0) return;
 
+		/**
+		 * One choreography, expressed at two scales. Returned as a factory rather
+		 * than duplicated so the two breakpoints cannot drift apart — the only
+		 * difference between them is how far and how spread out.
+		 */
+		const choreography = (scale: number) => () => {
+			const distance = (options.distance ?? 16) * scale;
+			const each = (options.stagger ?? 0.06) * scale;
+
+			gsap.set(targets, { opacity: 0, y: distance });
+
+			ScrollTrigger.create({
+				trigger: node,
+				start: options.start ?? 'top 85%',
+				once: true,
+				onEnter: () => {
+					gsap.to(targets, {
+						opacity: 1,
+						y: 0,
+						duration: DUR.deliberate,
+						ease: EASE.entrance,
+						// `from: 'start'` is the default, declared because it is a
+						// choreographic decision: the sequence reads left-to-right,
+						// top-to-bottom, the same direction the copy is read.
+						stagger: { each, from: 'start' },
+						overwrite: 'auto'
+					});
+				}
+			});
+		};
+
 		const context = gsap.context(() => {
 			const media = gsap.matchMedia();
 
-			media.add(MOTION_QUERIES.any, () => {
-				gsap.set(targets, { opacity: 0, y: options.distance ?? 16 });
-
-				ScrollTrigger.create({
-					trigger: node,
-					start: options.start ?? 'top 85%',
-					once: true,
-					onEnter: () => {
-						gsap.to(targets, {
-							opacity: 1,
-							y: 0,
-							duration: DUR.deliberate,
-							ease: EASE.entrance,
-							stagger: options.stagger ?? 0.06,
-							overwrite: 'auto'
-						});
-					}
-				});
-			});
+			media.add(MOTION_QUERIES.rich, choreography(1));
+			media.add(MOTION_QUERIES.compact, choreography(COMPACT_SCALE));
 
 			// Under reduced motion nothing is ever hidden, so there is nothing to
 			// reveal — the content is simply present. Preserving layout and content
@@ -234,35 +264,50 @@ export function apertureScroll(
  * only animates the arrival of already-present content. "Do not make users wait
  * through an intro movie" — there is nothing to wait for, and the CTAs are
  * clickable throughout because nothing is pointer-blocked at any point.
+ *
+ * THE BEATS OVERLAP DELIBERATELY. The headline is not on this timeline — it is
+ * `splitReveal` on its own element, whose masked lines finish around 0.98s
+ * (DUR.cinematic 0.9 plus one 0.08 line stagger). Starting the lede at 0.40s
+ * means it begins while the second headline line is still rising, so the two
+ * read as one continuous sequence. The previous timing started it at 0.55s and
+ * ran to 1.37s, which put a visible gap between each element and made four
+ * separate fades out of what should be one arrival.
  */
 export function heroSequence(): Attachment<HTMLElement> {
 	return (node) => {
+		/**
+		 * Offsets are absolute positions on the timeline, not relative, so the
+		 * cadence is readable as a score rather than as accumulated arithmetic.
+		 * `scale` compresses the whole score on small screens — see COMPACT_SCALE:
+		 * the compact hero has less to take in, so waiting the desktop interval
+		 * reads as lag rather than as pacing.
+		 */
+		const choreography = (scale: number, rise: number) => () => {
+			const eyebrow = node.querySelector('[data-hero="eyebrow"]');
+			const copy = node.querySelector('[data-hero="copy"]');
+			const actions = node.querySelector('[data-hero="actions"]');
+			const micro = node.querySelector('[data-hero="micro"]');
+
+			const parts = [eyebrow, copy, actions, micro].filter(
+				(element): element is Element => element !== null
+			);
+			if (parts.length === 0) return;
+
+			gsap.set(parts, { opacity: 0, y: rise });
+
+			gsap
+				.timeline({ defaults: { ease: EASE.entrance } })
+				.to(eyebrow, { opacity: 1, y: 0, duration: DUR.base }, 0.06 * scale)
+				.to(copy, { opacity: 1, y: 0, duration: DUR.deliberate }, 0.4 * scale)
+				.to(actions, { opacity: 1, y: 0, duration: DUR.base }, 0.62 * scale)
+				.to(micro, { opacity: 1, y: 0, duration: DUR.base }, 0.8 * scale);
+		};
+
 		const context = gsap.context(() => {
 			const media = gsap.matchMedia();
 
-			media.add(MOTION_QUERIES.any, () => {
-				const eyebrow = node.querySelector('[data-hero="eyebrow"]');
-				const copy = node.querySelector('[data-hero="copy"]');
-				const actions = node.querySelector('[data-hero="actions"]');
-				const micro = node.querySelector('[data-hero="micro"]');
-
-				const parts = [eyebrow, copy, actions, micro].filter(
-					(element): element is Element => element !== null
-				);
-				if (parts.length === 0) return;
-
-				gsap.set(parts, { opacity: 0, y: 12 });
-
-				// The timeline maps to §25's beats. The headline is handled by
-				// splitReveal on its own element, which starts at 0.35s by sitting
-				// earlier in the document.
-				gsap
-					.timeline({ defaults: { ease: EASE.entrance } })
-					.to(eyebrow, { opacity: 1, y: 0, duration: DUR.base }, 0.1)
-					.to(copy, { opacity: 1, y: 0, duration: DUR.deliberate }, 0.55)
-					.to(actions, { opacity: 1, y: 0, duration: DUR.base }, 0.8)
-					.to(micro, { opacity: 1, y: 0, duration: DUR.base }, 1.05);
-			});
+			media.add(MOTION_QUERIES.rich, choreography(1, 12));
+			media.add(MOTION_QUERIES.compact, choreography(0.7, 8));
 
 			media.add(MOTION_QUERIES.reduced, () => {
 				gsap.set(node.querySelectorAll('[data-hero]'), { clearProps: 'opacity,transform' });

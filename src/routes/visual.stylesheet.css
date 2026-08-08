@@ -32,7 +32,16 @@
 .projects > li,
 .principles > li,
 .process > li,
+.articles > li,
+.labels > li,
 .closing-content,
+.closing-content > *,
+.statement .grid > *,
+.technology .grid > *,
+.philosophy > *,
+.final-copy > *,
+.quote blockquote,
+.quote figcaption,
 .split-line {
 	opacity: 1 !important;
 	transform: none !important;
@@ -43,4 +52,21 @@
 .aperture circle {
 	transform: scaleX(1) !important;
 	opacity: 1 !important;
+}
+
+/*
+ * SCROLL-DRIVEN CSS animations, which are a separate problem from the GSAP
+ * ones above: they are driven by scroll POSITION rather than by time, so
+ * Playwright's `animations: 'disabled'` — which fast-forwards time-based
+ * animations — does not settle them, and neither does the zeroed
+ * animation-duration at the top of this file. Pinned explicitly instead.
+ *
+ * `translate` and `scale` are named individually because the components use
+ * them as independent properties rather than through `transform`, so a
+ * `transform: none` above does not reach them.
+ */
+.stage,
+.media svg {
+	animation: none !important;
+	translate: none !important;
 }

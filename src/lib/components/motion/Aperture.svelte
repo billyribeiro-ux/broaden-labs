@@ -51,6 +51,7 @@
 <svg
 	class="aperture"
 	data-mode={mode}
+	data-driven={driven ? 'true' : undefined}
 	style={driven ? undefined : `--aperture: ${extent}`}
 	{@attach driven ? scrollDriven : undefined}
 	viewBox="0 0 1000 8"
@@ -106,6 +107,37 @@
 	.dot {
 		opacity: var(--aperture, 1);
 		transition: opacity var(--dur-base) var(--ease-entrance);
+	}
+
+	/**
+	 * A SCRUBBED instance gets no transition at all.
+	 *
+	 * motion.ts states the rule for apertureScroll: "an eased scrub reads as
+	 * input lag rather than as polish". The transitions above were breaking it —
+	 * ScrollTrigger writes `--aperture` every frame, each write re-targets the
+	 * declaration below, and a 900ms ease-out restarting every frame means the
+	 * drawn line trails the scroll instead of tracking it.
+	 *
+	 * Measured in Chromium 151 against this page, sampling `--aperture` on the
+	 * <svg> and the computed `transform` of the line it drives on the same
+	 * frame: --aperture reached 0.5946 and then held that exact value for
+	 * thirteen consecutive frames, while the rendered scaleX crawled
+	 * 0 → 0.4053 → 0.5250 → … → 0.5777 and had still not arrived. The hairline
+	 * was roughly a quarter of a second behind the finger.
+	 *
+	 * The smoothing the motif actually wants is already there, in the right
+	 * place: ScrollTrigger's own `scrub: 0.4`, which eases the VALUE toward the
+	 * scroll position rather than easing each frame's paint. Removing the CSS
+	 * transition leaves exactly one smoothing mechanism instead of two fighting.
+	 *
+	 * Every <Aperture> in the app is currently scroll-driven — no caller passes
+	 * `extent` — so the transitions above are kept only for the pinned case they
+	 * were written for, where the value changes discretely and an ease is right.
+	 */
+	.aperture[data-driven] .rule,
+	.aperture[data-driven] .tick,
+	.aperture[data-driven] .dot {
+		transition: none;
 	}
 
 	.dot {

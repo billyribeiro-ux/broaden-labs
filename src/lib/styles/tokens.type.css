@@ -67,7 +67,35 @@
 		 * Large type needs negative tracking to stay optically even; small caps
 		 * and mono metadata need positive tracking to stay legible.
 		 */
-		--tracking-mega: -0.035em;
+
+		/**
+		 * The two largest steps track OPTICALLY, not proportionally.
+		 *
+		 * An `em` value is proportional by definition: -0.035em is the same
+		 * relative tightness at 56px as at 168px. Optical tracking is not
+		 * proportional — the larger the type, the more the counters and sidebearings
+		 * need closing, which is the same reason Bricolage carries an `opsz` axis at
+		 * all. A single em value therefore has to be wrong at one end: -0.035em is
+		 * right at 168px and visibly pinched at the 56px floor, where the same
+		 * relative tightness closes up an already-small aperture on 'e', 'a' and 's'.
+		 *
+		 * So the value is fluid, calibrated on --display-hero (the only one of the
+		 * two steps that renders anywhere) using this file's own arithmetic:
+		 *
+		 *   320px viewport -> --display-hero  56px, target -0.020em = -1.120px
+		 *  2560px viewport -> --display-hero 168px, target -0.035em = -5.880px
+		 *   slope     = (-5.880 - -1.120) / (2560 - 320) = -0.0021250 px/px = -0.21250vw
+		 *   intercept = -1.120 - (-0.0021250 x 320)      = -0.440px
+		 *
+		 * Checked at the intermediate widths rather than assumed: at 1440px this
+		 * yields -3.500px on a 112px face = -0.03125em, and at 390px -1.269px on a
+		 * 56px face = -0.0227em. Both sit between the endpoints, as intended.
+		 *
+		 * This does not endanger the 320px fit documented against --display-hero
+		 * above: that clearance was computed with NO letter-spacing at all, and
+		 * every value here is still negative.
+		 */
+		--tracking-mega: clamp(-5.88px, -0.44px - 0.2125vw, -1.12px);
 		--tracking-display: -0.025em;
 		--tracking-heading: -0.015em;
 		--tracking-normal: 0;

@@ -42,6 +42,7 @@
 
 <style>
 	.card {
+		position: relative;
 		display: grid;
 		align-content: start;
 		gap: var(--space-sm);
@@ -55,9 +56,41 @@
 			background-color var(--dur-instant) var(--ease-exit);
 	}
 
-	.card:hover {
+	.card:hover,
+	.card:focus-visible {
 		border-color: var(--border-strong);
 		background-color: var(--surface-elevated);
+		transition-duration: var(--dur-base);
+		transition-timing-function: var(--ease-entrance);
+	}
+
+	/**
+	 * The card's top edge redrawn in the accent, growing from the left and
+	 * retracting to the right — the same aperture gesture as the nav underline
+	 * and the insight rows, so hovering anything on this site produces one
+	 * recognisable behaviour rather than a different idea per component.
+	 *
+	 * A composited scaleX on a 1px line: no layout, no paint, and it cannot
+	 * shift the card because it is out of flow and sits over the existing
+	 * border rather than adding to it.
+	 */
+	.card::before {
+		content: '';
+		position: absolute;
+		inset-block-start: calc(var(--border-hairline) * -1);
+		inset-inline: calc(var(--border-hairline) * -1);
+		block-size: var(--border-hairline);
+		background-color: var(--accent);
+
+		transform: scaleX(0);
+		transform-origin: 100% 50%;
+		transition: transform var(--dur-instant) var(--ease-exit);
+	}
+
+	.card:hover::before,
+	.card:focus-visible::before {
+		transform: scaleX(1);
+		transform-origin: 0 50%;
 		transition-duration: var(--dur-base);
 		transition-timing-function: var(--ease-entrance);
 	}
@@ -110,6 +143,14 @@
 		font-size: var(--text-sm);
 		font-weight: var(--weight-semibold);
 		color: var(--accent);
+		transition: color var(--dur-instant) var(--ease-exit);
+	}
+
+	.card:hover .more,
+	.card:focus-visible .more {
+		color: var(--accent-hover);
+		transition-duration: var(--dur-fast);
+		transition-timing-function: var(--ease-entrance);
 	}
 
 	.arrow {
@@ -117,7 +158,8 @@
 		transition: transform var(--dur-instant) var(--ease-exit);
 	}
 
-	.card:hover .arrow {
+	.card:hover .arrow,
+	.card:focus-visible .arrow {
 		transform: translateX(var(--dist-xs));
 		transition-duration: var(--dur-fast);
 		transition-timing-function: var(--ease-entrance);

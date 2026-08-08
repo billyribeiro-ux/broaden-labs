@@ -62,18 +62,71 @@
 	}
 
 	.media {
-		overflow: hidden;
+		/**
+		 * `clip`, not `hidden`. They clip identically, but `hidden` makes this a
+		 * SCROLL CONTAINER — and a scroll container is the nearest scrollport for
+		 * everything inside it, which would make the `view()` timeline below
+		 * measure the fixture against this 263px frame instead of against the
+		 * viewport, and produce no motion at all. `clip` creates no scrollport.
+		 */
+		overflow: clip;
 		border: var(--border-hairline) solid var(--border-subtle);
 	}
 
+	/**
+	 * The fixture rests slightly oversized so it has somewhere to drift.
+	 *
+	 * `scale` and `translate` are used as INDEPENDENT properties rather than
+	 * both going through `transform`, which is what lets the hover lift and the
+	 * scroll drift coexist: an `animation` on `transform` would win over the
+	 * hover `transition` on `transform` outright, and the card would stop
+	 * responding to the pointer. As separate longhands they compose.
+	 */
 	.media :global(svg) {
-		transition: transform var(--dur-base) var(--ease-exit);
+		scale: 1.05;
+		transition: scale var(--dur-base) var(--ease-exit);
 	}
 
-	.card:hover .media :global(svg) {
-		transform: scale(1.02);
+	.card:hover .media :global(svg),
+	.card:focus-visible .media :global(svg) {
+		scale: 1.08;
 		transition-duration: var(--dur-deliberate);
 		transition-timing-function: var(--ease-entrance);
+	}
+
+	/**
+	 * Parallax on the fixture as the card passes through the viewport.
+	 *
+	 * ±2.4% against a 5% oversize, so the frame is never uncovered. Driven by a
+	 * view-progress timeline, which means no scroll listener, no ScrollTrigger
+	 * and no per-frame JavaScript for any number of cards — /work renders six of
+	 * these and the main-thread cost of all six is zero.
+	 *
+	 * Support measured in this project's pinned browsers: Chromium 151 yes,
+	 * WebKit 26.5 yes, Firefox 153 no. Firefox gets the resting composition,
+	 * which is a finished state rather than a broken one.
+	 *
+	 * `animation-timeline` and `animation-range` are declared AFTER the
+	 * `animation` shorthand on purpose — the shorthand resets both to their
+	 * initial values, so the reverse order silently disables the timeline.
+	 */
+	@supports (animation-timeline: view()) {
+		@media (prefers-reduced-motion: no-preference) {
+			.media :global(svg) {
+				animation: fixture-drift linear both;
+				animation-timeline: view();
+				animation-range: cover 0% cover 100%;
+			}
+		}
+	}
+
+	@keyframes fixture-drift {
+		from {
+			translate: 0 -2.4%;
+		}
+		to {
+			translate: 0 2.4%;
+		}
 	}
 
 	.meta {

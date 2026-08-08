@@ -103,11 +103,62 @@
 		 * Threlte's <Canvas> wrapper is width/height 100% of its parent — with no
 		 * parent height the canvas collapses to 0 and nothing renders. This is the
 		 * single most common "blank Threlte scene", so the height is explicit.
+		 *
+		 * 112%, offset by -6%, rather than 100%: the parallax below travels 5% of
+		 * this box, and a field that travels needs somewhere to travel FROM. The
+		 * overhang is what stops the drift exposing an empty band at either edge.
+		 * `.hero` clips it — see the `overflow: clip` there.
 		 */
-		block-size: 100%;
+		block-size: 112%;
+		inset-block-start: -6%;
 		overflow: hidden;
 		/* Decorative and behind the copy: it must never eat a click meant for a CTA. */
 		pointer-events: none;
+	}
+
+	/**
+	 * Depth on the hero field, driven by the scroll position rather than by JS.
+	 *
+	 * The field lags the page as it scrolls — the oldest parallax there is, and
+	 * still the one that reads as depth rather than as decoration. 5% of a 112%
+	 * box is roughly 40px of travel at 1440×900; enough to separate the field
+	 * from the copy plane, small enough that nothing appears to slide.
+	 *
+	 * `animation-timeline: scroll()` keeps this OFF THE MAIN THREAD entirely.
+	 * There is no scroll listener, no ScrollTrigger, no rAF and no GSAP — which
+	 * matters here specifically, because this element is in the viewport during
+	 * the load window Lighthouse measures TBT over.
+	 *
+	 * Support was measured in the browsers this project pins, not assumed:
+	 * Chromium 151 yes, WebKit 26.5 yes, Firefox 153 NO. So it is wrapped in
+	 * @supports and Firefox simply gets the resting composition — a correct
+	 * state, not a broken one. Same mechanism and same reasoning as the header
+	 * hairline in SiteHeader.svelte.
+	 *
+	 * CLS is structurally unaffected: `.stage` is absolutely positioned and
+	 * pointer-events: none, so neither its size nor its transform can move,
+	 * resize or reflow anything else on the page.
+	 */
+	@supports (animation-timeline: scroll()) {
+		@media (prefers-reduced-motion: no-preference) {
+			.stage {
+				animation: stage-depth linear both;
+				animation-timeline: scroll();
+				/* The hero is min 78svh; the drift is spent over roughly the first
+				   screen of scroll, and is finished before the hero has left. */
+				animation-range: 0 90svh;
+			}
+		}
+	}
+
+	/*
+	 * `translate` rather than `transform`, so this composes with anything the
+	 * scene itself may set on `transform` instead of overwriting it.
+	 */
+	@keyframes stage-depth {
+		to {
+			translate: 0 5%;
+		}
 	}
 
 	/*
