@@ -200,16 +200,28 @@
 
 			elapsed += delta;
 
-			// 0.00 closed → 0.35 plates open → 1.20 field settled. Clamped rather
-			// than eased by a library so the scene owns no timeline of its own to
-			// leak.
-			const open = Math.min(elapsed / 0.9, 1);
-			const eased = 1 - Math.pow(1 - open, 4);
+			/**
+			 * 0.00 closed → 0.90 field fully present → 1.40 plates settled.
+			 * Clamped rather than eased by a library so the scene owns no timeline
+			 * of its own to leak.
+			 *
+			 * The two constants are the same pair the DOM uses — DUR.cinematic for
+			 * the fade, DUR.expansive for the unfold underneath it — and for the
+			 * same reason: the field should be THERE before it has finished
+			 * arriving. They are literals rather than an import because this module
+			 * is behind the three.js dynamic boundary and must not reach back
+			 * across it for two numbers.
+			 *
+			 * `Math.pow(1 - open, 5)` is quint-out, which is what `--ease-inertial`
+			 * resolves to. It was quart-out, which no token in the system names.
+			 */
+			const open = Math.min(elapsed / 1.4, 1);
+			const eased = 1 - Math.pow(1 - open, 5);
 
 			// uEdge 0.5 is a filled quad (no outline visible); 0.018 is a hairline.
 			// The plates therefore OPEN rather than fade in.
 			uniforms.uEdge.value = 0.5 - eased * 0.482;
-			uniforms.uOpacity.value = Math.min(elapsed / 0.45, 1);
+			uniforms.uOpacity.value = Math.min(elapsed / 0.9, 1);
 
 			if (mesh) {
 				// THE unfold: every layer starts collapsed onto one plane and the

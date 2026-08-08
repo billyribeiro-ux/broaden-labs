@@ -19,6 +19,16 @@
 		--dur-deliberate: 560ms; /* section entrances, card lifts, dialog open */
 		--dur-cinematic: 900ms; /* hero beats, surface-crossing aperture runs */
 
+		/**
+		 * The sixth step, added rather than sprinkling a magic number at the call
+		 * site. It is the TRANSFORM half of an opacity-led entrance and nothing
+		 * else — a composited settle that continues after the content is already
+		 * readable. Nothing whose completion gates legibility may use it: at this
+		 * length a masked line would sit clipped, and a colour transition would
+		 * read as a bug rather than as pacing.
+		 */
+		--dur-expansive: 1400ms; /* the transform tail under a fade-in */
+
 		/* ── EASING ────────────────────────────────────────────────────────── */
 		--ease-entrance: cubic-bezier(0.16, 1, 0.3, 1); /* expo-out */
 		--ease-exit: cubic-bezier(0.55, 0, 1, 0.45); /* quart-in */
@@ -33,13 +43,21 @@
 		--dist-xs: 4px; /* icon nudge, arrow travel, pressed offset */
 		--dist-sm: 8px; /* underline sweep, chip settle */
 		--dist-md: 16px; /* card lift, paragraph reveal */
-		--dist-lg: 32px; /* section heading reveal, hero line mask */
+		--dist-lg: 32px; /* section heading reveal */
 		--dist-xl: 64px; /* full-section entrance, transition plane */
 
-		/* ── STAGGER ───────────────────────────────────────────────────────── */
-		--stagger-tight: 24ms; /* split words within one hero line */
-		--stagger-base: 60ms; /* list items, capability labels */
-		--stagger-loose: 110ms; /* three cards in a row */
+		/**
+		 * ── STAGGER ─────────────────────────────────────────────────────────
+		 *
+		 * Widened so a sequence reads as a sequence. At 60ms between siblings and
+		 * a 560ms settle, the last card began before the first was a third of the
+		 * way in and the group arrived as one burst; the eye had nothing to track.
+		 * The interval now sits at roughly a tenth of the settle it staggers,
+		 * which is enough separation to follow and far short of a queue.
+		 */
+		--stagger-tight: 32ms; /* the stack labels — one texture, not eight items */
+		--stagger-base: 100ms; /* list items, principles, process steps */
+		--stagger-loose: 170ms; /* three cards in a row, editorial rows */
 	}
 
 	/**
@@ -59,6 +77,7 @@
 			--dur-base: 1ms;
 			--dur-deliberate: 1ms;
 			--dur-cinematic: 1ms;
+			--dur-expansive: 1ms;
 
 			--dist-xs: 0px;
 			--dist-sm: 0px;

@@ -113,7 +113,7 @@
 			class list because the children here are components that own their own
 			markup — a page should not be selecting on another component's internals.
 		-->
-		<div class="grid" {@attach reveal({ children: ':scope > *', stagger: 0.14, start: 'top 80%' })}>
+		<div class="grid" {@attach reveal({ children: ':scope > *', stagger: 0.2, start: 'top 80%' })}>
 			<div class="span-7-5">
 				<DisplayHeading size="lg" measure={false}>
 					{STATEMENT.headline}
@@ -142,7 +142,7 @@
 			</div>
 		</div>
 
-		<ul class="cards" role="list" {@attach reveal({ children: 'li', stagger: 0.08 })}>
+		<ul class="cards" role="list" {@attach reveal({ children: 'li', stagger: 0.13 })}>
 			{#each SERVICES as service (service.slug)}
 				<li><ServiceCard {service} /></li>
 			{/each}
@@ -165,7 +165,7 @@
 			</div>
 		</div>
 
-		<ul class="projects" role="list" {@attach reveal({ children: 'li', stagger: 0.11 })}>
+		<ul class="projects" role="list" {@attach reveal({ children: 'li', stagger: 0.17 })}>
 			{#each featured as study, index (study.slug)}
 				<li><ProjectCard {study} {index} /></li>
 			{/each}
@@ -194,7 +194,7 @@
 		<div class="grid">
 			<div
 				class="span-8-4 philosophy"
-				{@attach reveal({ children: ':scope > *', stagger: 0.1, start: 'top 80%' })}
+				{@attach reveal({ children: ':scope > *', stagger: 0.16, start: 'top 80%' })}
 			>
 				<Eyebrow>{PHILOSOPHY.eyebrow}</Eyebrow>
 				<DisplayHeading size="md" measure={false}>{PHILOSOPHY.headline}</DisplayHeading>
@@ -211,7 +211,7 @@
 <!-- 6 · Principles ──────────────────────────────────────────────────────── -->
 <section class="section section--flush-top" data-surface="light">
 	<div class="container">
-		<ol class="principles" role="list" {@attach reveal({ children: 'li', stagger: 0.06 })}>
+		<ol class="principles" role="list" {@attach reveal({ children: 'li', stagger: 0.1 })}>
 			{#each PRINCIPLES as principle (principle.number)}
 				<li class="principle">
 					<span class="principle-number" aria-hidden="true">{principle.number}</span>
@@ -240,7 +240,7 @@
 			</div>
 		</div>
 
-		<ol class="process" role="list" {@attach reveal({ children: 'li', stagger: 0.08 })}>
+		<ol class="process" role="list" {@attach reveal({ children: 'li', stagger: 0.13 })}>
 			{#each PROCESS as step (step.number)}
 				<li class="step">
 					<div class="step-head">
@@ -265,7 +265,7 @@
 	<div class="container">
 		<!-- The closing seam of the pair opened above the philosophy section. -->
 		<Aperture mode="connector" />
-		<div class="grid" {@attach reveal({ children: ':scope > *', stagger: 0.14, start: 'top 80%' })}>
+		<div class="grid" {@attach reveal({ children: ':scope > *', stagger: 0.2, start: 'top 80%' })}>
 			<div class="span-7-5">
 				<DisplayHeading size="sm" measure={false}>{TECHNOLOGY.headline}</DisplayHeading>
 			</div>
@@ -277,7 +277,7 @@
 					and they should read as one texture arriving rather than as eight
 					separate items.
 				-->
-				<ul class="labels" role="list" {@attach reveal({ children: 'li', stagger: 0.024 })}>
+				<ul class="labels" role="list" {@attach reveal({ children: 'li', stagger: 0.032 })}>
 					{#each TECHNOLOGY.labels as label (label)}
 						<li>{label}</li>
 					{/each}
@@ -293,7 +293,7 @@
 		<div class="container">
 			<figure
 				class="quote"
-				{@attach reveal({ children: 'blockquote, figcaption', stagger: 0.12, start: 'top 82%' })}
+				{@attach reveal({ children: 'blockquote, figcaption', stagger: 0.18, start: 'top 82%' })}
 			>
 				<Aperture mode="gate" />
 				<blockquote>
@@ -326,7 +326,7 @@
 		<ul
 			class="articles"
 			role="list"
-			{@attach reveal({ children: 'li', stagger: 0.1, distance: 12 })}
+			{@attach reveal({ children: 'li', stagger: 0.17, distance: 10 })}
 		>
 			{#each latestInsights as insight (insight.slug)}
 				<li><ArticleCard {insight} /></li>
@@ -343,14 +343,18 @@
 	<div class="container">
 		<div class="grid">
 			<!--
-				The close is the page's last beat and gets the page's longest travel
-				and loosest stagger: headline, then body, then the CTAs, then the
+				The close is the page's last beat and gets the page's longest travel,
+				with a stagger to match: headline, then body, then the CTAs, then the
 				microcopy. Revealing the block as one unit (which is what a bare
 				`reveal({ distance: 24 })` did) threw all four away at once.
+
+				18px rather than the 24px it used to travel. The rise is now the slow
+				half of the entrance rather than the whole of it, and 24px spread over
+				1.4s reads as a drift; the fade is what carries the beat.
 			-->
 			<div
 				class="span-8-4 closing-content"
-				{@attach reveal({ children: ':scope > *', stagger: 0.09, distance: 24, start: 'top 82%' })}
+				{@attach reveal({ children: ':scope > *', stagger: 0.18, distance: 18, start: 'top 82%' })}
 			>
 				<DisplayHeading size="lg" measure={false}>{CLOSING.headline}</DisplayHeading>
 				<p class="closing-body">{CLOSING.body}</p>
@@ -375,7 +379,7 @@
 			scroll driver writing `--aperture`, and putting it inside a reveal that
 			also writes opacity and transform would give one element two owners.
 		-->
-		<div class="final-copy" {@attach reveal({ children: ':scope > *', stagger: 0.12 })}>
+		<div class="final-copy" {@attach reveal({ children: ':scope > *', stagger: 0.18 })}>
 			<DisplayHeading size="md" measure={false}>{FINAL_BRAND_MOMENT.headline}</DisplayHeading>
 			<div class="final-body">
 				{#each FINAL_BRAND_MOMENT.body as paragraph (paragraph)}
@@ -421,13 +425,29 @@
 	}
 
 	/*
-	 * SplitText's mask wrapper needs overflow hidden for the lines to rise from
-	 * behind an edge. `:global` because SplitText creates these elements at
-	 * runtime, so the scoping hash never reaches them.
+	 * THERE IS DELIBERATELY NO `will-change` ON THE SPLIT LINES. Do not add one
+	 * back — this is the second time it has been measured.
+	 *
+	 * `will-change` promotes the line to its own composited layer, and Chromium
+	 * renders text on a composited layer with GRAYSCALE antialiasing rather than
+	 * subpixel. Whether the layer still exists when a frame is captured is a
+	 * race, so the largest text on the site rasterises two different ways from
+	 * one run to the next. Measured against a freshly generated baseline of
+	 * itself at 390px, repeating the same capture:
+	 *
+	 *   will-change: transform, opacity  -> 4 of 6 runs differed (1254-1575 px)
+	 *   will-change: transform           -> 2 of 6 runs differed
+	 *   no will-change                   -> 8 of 8 runs identical
+	 *
+	 * Every differing pixel was inside the headline's own rows with the page
+	 * height identical to the pixel, and aligning the two renders at ±0 was the
+	 * best fit, so it is antialiasing and not a layout or subpixel shift.
+	 *
+	 * Nothing is lost by omitting it. The entrance runs ONCE per page load, and
+	 * `will-change` is a hint for a property about to change repeatedly; GSAP
+	 * already promotes the layer for the duration of the transform tween and
+	 * releases it afterwards, which is exactly the correct lifetime.
 	 */
-	.hero-headline :global(.split-line) {
-		will-change: transform;
-	}
 
 	.content {
 		display: grid;

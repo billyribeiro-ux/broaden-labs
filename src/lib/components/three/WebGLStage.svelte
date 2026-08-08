@@ -144,9 +144,18 @@
 			.stage {
 				animation: stage-depth linear both;
 				animation-timeline: scroll();
-				/* The hero is min 78svh; the drift is spent over roughly the first
-				   screen of scroll, and is finished before the hero has left. */
-				animation-range: 0 90svh;
+				/*
+				 * The same 5% of travel, spent over a longer stretch of scroll:
+				 * 110svh rather than 90svh. The field therefore lags the page by
+				 * more at any given moment, which is what reads as mass — a
+				 * background that keeps up is not behind anything.
+				 *
+				 * The hero is min 78svh, so the drift now outlives the hero rather
+				 * than finishing inside it. That is deliberate: the stage is clipped
+				 * by `.hero`'s `overflow: clip`, so the tail of the travel happens
+				 * off-screen instead of visibly stopping while still in view.
+				 */
+				animation-range: 0 110svh;
 			}
 		}
 	}

@@ -73,8 +73,14 @@ export function reveal(options: RevealOptions = {}): Attachment<HTMLElement> {
 		 * difference between them is how far and how spread out.
 		 */
 		const choreography = (scale: number) => () => {
-			const distance = (options.distance ?? 16) * scale;
-			const each = (options.stagger ?? 0.06) * scale;
+			const distance = (options.distance ?? 12) * scale;
+			const each = (options.stagger ?? 0.1) * scale;
+
+			// `from: 'start'` is the default, declared because it is a choreographic
+			// decision: the sequence reads left-to-right, top-to-bottom, the same
+			// direction the copy is read. Shared by both tweens below so the two
+			// halves of one entrance cannot drift out of phase.
+			const stagger = { each, from: 'start' } as const;
 
 			gsap.set(targets, { opacity: 0, y: distance });
 
@@ -82,16 +88,36 @@ export function reveal(options: RevealOptions = {}): Attachment<HTMLElement> {
 				trigger: node,
 				start: options.start ?? 'top 85%',
 				once: true,
+				/**
+				 * TWO tweens, not one, because the two properties are answering two
+				 * different questions and want two different lengths.
+				 *
+				 * Opacity decides when the content is READABLE, so it settles first
+				 * and on the sharper curve. The rise is decoration underneath it: it
+				 * is composited, nothing waits on it, and letting it keep travelling
+				 * for half a second after the text is already legible is what makes
+				 * the arrival read as weighted rather than as a fade that stopped.
+				 *
+				 * One tween cannot express that — a single `duration` would either
+				 * hold the text dim for 1.4s or cut the travel short at 0.9s.
+				 *
+				 * `overwrite: 'auto'` is property-level in GSAP: it kills conflicting
+				 * parts of other tweens on the same target, and these two share no
+				 * property, so they do not fight.
+				 */
 				onEnter: () => {
 					gsap.to(targets, {
 						opacity: 1,
-						y: 0,
-						duration: DUR.deliberate,
+						duration: DUR.cinematic,
 						ease: EASE.entrance,
-						// `from: 'start'` is the default, declared because it is a
-						// choreographic decision: the sequence reads left-to-right,
-						// top-to-bottom, the same direction the copy is read.
-						stagger: { each, from: 'start' },
+						stagger,
+						overwrite: 'auto'
+					});
+					gsap.to(targets, {
+						y: 0,
+						duration: DUR.expansive,
+						ease: EASE.inertial,
+						stagger,
 						overwrite: 'auto'
 					});
 				}
@@ -117,17 +143,39 @@ export function reveal(options: RevealOptions = {}): Attachment<HTMLElement> {
 }
 
 /**
- * Splits a heading into lines and reveals them behind a mask.
+ * Splits a heading into lines and dissolves them in, line by line.
  *
  * SplitText only, and only where the typography earns it — brief §70 lists the
  * hero and major editorial statements as good, and "every paragraph, buttons,
  * form labels, navigation" as bad.
  *
+ * NO MASK, deliberately, and this is a change from the previous pass.
+ *
+ * `mask: 'lines'` clips each line to its own box, so the glyph is not whole
+ * until the transform has finished — the mask makes the TRANSFORM the thing
+ * legibility waits on. That caps how long the settle can be: a 1.4s masked rise
+ * is a headline sitting visibly guillotined for over a second. Leading with
+ * opacity instead removes the cap. The line fades up through a short rise that
+ * keeps drifting after the text is already readable, which is the same
+ * two-speed shape `reveal` uses and reads as a dissolve rather than a reveal
+ * mechanism.
+ *
+ * THIS IS THE LCP ELEMENT and the timing here does not touch it. Measured
+ * against the production build under applied CDP throttling, at three profiles:
+ * the h1 is the LCP node and its single LCP entry lands at exactly FCP —
+ * 872/872ms on slow-4g + 4x CPU, 1580/1580ms on slow-3g + 4x CPU, 44/44ms
+ * unthrottled — while the first `.split-line` element does not exist until
+ * 2673ms, 8855ms and 80ms respectively. The headline is served in the HTML,
+ * paints with the page, and banks LCP long before GSAP has been fetched. What
+ * would break that is hiding it in CSS, which is exactly what brief §115
+ * already forbids and what nothing here does.
+ *
  * Two things this gets right that split-text animations usually do not:
  *
  * 1. It waits for `document.fonts.ready`. Splitting before the webfont settles
- *    measures the fallback's line breaks, so the mask lands mid-word once the
- *    real face swaps in.
+ *    measures the fallback's line breaks, so the lines are cut in the wrong
+ *    places once the real face swaps in and the stagger runs down a sequence
+ *    that no longer matches what is on screen.
  * 2. `autoSplit: true` re-splits on resize. Without it, rotating a phone leaves
  *    the lines broken at the old width.
  *
@@ -167,24 +215,48 @@ export function splitReveal(options: { start?: string } = {}): Attachment<HTMLEl
 					node.setAttribute('aria-label', original);
 					split = SplitText.create(node, {
 						type: 'lines',
-						mask: 'lines',
 						linesClass: 'split-line',
 						autoSplit: true
 					});
 					trackSplit(1);
 
-					gsap.set(split.lines, { yPercent: 110 });
+					gsap.set(split.lines, { opacity: 0, yPercent: 26 });
+
+					/**
+					 * `amount` rather than `each`: it is the TOTAL spread across the
+					 * lines, however many there are.
+					 *
+					 * Measured against this build, `.split-line` count by viewport:
+					 * 7 lines at 390px, 4 at 768px, 2 at 1440px, 4 at 2560px. It is
+					 * not monotonic — the display size grows with the viewport, so the
+					 * widest screen wraps more than the 1440px one.
+					 *
+					 * With a per-line interval the phone would spend three and a half
+					 * times as long on the same sentence as the 1440px desktop — the
+					 * small screen, the one least able to afford the wait, getting the
+					 * longest opening. A fixed total keeps the cadence of the hero
+					 * identical at every width and simply spaces the lines more
+					 * tightly when there are more of them.
+					 */
+					const stagger = { amount: 0.34, from: 'start' } as const;
 
 					trigger = ScrollTrigger.create({
 						trigger: node,
 						start: options.start ?? 'top 85%',
 						once: true,
 						onEnter: () => {
-							gsap.to(split?.lines ?? [], {
-								yPercent: 0,
+							const lines = split?.lines ?? [];
+							gsap.to(lines, {
+								opacity: 1,
 								duration: DUR.cinematic,
 								ease: EASE.entrance,
-								stagger: 0.08
+								stagger
+							});
+							gsap.to(lines, {
+								yPercent: 0,
+								duration: DUR.expansive,
+								ease: EASE.inertial,
+								stagger
 							});
 						}
 					});
@@ -221,6 +293,17 @@ export function splitReveal(options: { start?: string } = {}): Attachment<HTMLEl
  * `scrub` uses linear easing by definition — an eased scrub reads as input lag
  * rather than as polish, which is why `--ease-linear` exists in the token set
  * and is legal only here.
+ *
+ * The hairline is now drawn over a LONGER stretch of scroll and catches up more
+ * slowly: the run starts higher (top 96% rather than 92%) and finishes lower
+ * (top 42% rather than 55%), which spreads the same line across 54% of the
+ * viewport instead of 37% — about half again as much travel for the same
+ * gesture. `scrub` went 0.4 → 0.7.
+ *
+ * The numeric scrub is a catch-up time in seconds, NOT an ease: the value still
+ * tracks the scroll position exactly rather than easing each frame's paint, so
+ * the rule stated above is intact. It simply arrives with weight instead of
+ * snapping to the finger.
  */
 export function apertureScroll(
 	options: { start?: string; end?: string } = {}
@@ -238,9 +321,9 @@ export function apertureScroll(
 						ease: 'none',
 						scrollTrigger: {
 							trigger: node,
-							start: options.start ?? 'top 92%',
-							end: options.end ?? 'top 55%',
-							scrub: 0.4
+							start: options.start ?? 'top 96%',
+							end: options.end ?? 'top 42%',
+							scrub: 0.7
 						}
 					}
 				);
@@ -260,18 +343,32 @@ export function apertureScroll(
 /**
  * The hero opening sequence. Brief §25.
  *
- * Fast on purpose: the DOM is server-rendered and readable at 0.00s, and this
- * only animates the arrival of already-present content. "Do not make users wait
- * through an intro movie" — there is nothing to wait for, and the CTAs are
- * clickable throughout because nothing is pointer-blocked at any point.
+ * Unhurried, but never a wait: the DOM is server-rendered and readable at
+ * 0.00s, and this only animates the ARRIVAL of already-present content. "Do not
+ * make users wait through an intro movie" — there is nothing to wait for, and
+ * the CTAs are clickable throughout because nothing is pointer-blocked at any
+ * point and nothing is delayed before it begins to paint.
  *
- * THE BEATS OVERLAP DELIBERATELY. The headline is not on this timeline — it is
- * `splitReveal` on its own element, whose masked lines finish around 0.98s
- * (DUR.cinematic 0.9 plus one 0.08 line stagger). Starting the lede at 0.40s
- * means it begins while the second headline line is still rising, so the two
- * read as one continuous sequence. The previous timing started it at 0.55s and
- * ran to 1.37s, which put a visible gap between each element and made four
- * separate fades out of what should be one arrival.
+ * THE BEATS OVERLAP DELIBERATELY, and they overlap harder than they used to.
+ * Every beat now begins while the one before it is roughly a third settled,
+ * so the hero reads as one continuous arrival rather than four fades in a
+ * queue. Overlap is what reads as choreography; the gaps between short beats
+ * are what read as lag, and the previous pass had run out of overlap because
+ * each beat was only 0.32s long.
+ *
+ * The headline is not on this timeline — it is `splitReveal` on its own
+ * element, opening at 0.00s alongside the eyebrow.
+ *
+ *   beat      starts   opacity (0.9s)   rise (1.4s)
+ *   eyebrow    0.00        → 0.90         → 1.40
+ *   headline   0.00        → 1.24         → 1.74      (splitReveal, staggered)
+ *   lede       0.34        → 1.24         → 1.74
+ *   actions    0.62        → 1.52         → 2.02
+ *   microcopy  0.78        → 1.68         → 2.18
+ *
+ * Total span 1.12s → 2.18s. The last half-second of that is transform only:
+ * every element is ≥99% opaque by 1.38s, because opacity is what decides when
+ * something is readable and the rise underneath it is free.
  */
 export function heroSequence(): Attachment<HTMLElement> {
 	return (node) => {
@@ -280,7 +377,9 @@ export function heroSequence(): Attachment<HTMLElement> {
 		 * cadence is readable as a score rather than as accumulated arithmetic.
 		 * `scale` compresses the whole score on small screens — see COMPACT_SCALE:
 		 * the compact hero has less to take in, so waiting the desktop interval
-		 * reads as lag rather than as pacing.
+		 * reads as lag rather than as pacing. Only the OFFSETS scale; the
+		 * durations do not, because a shorter fade on a phone is the snappiness
+		 * this pass exists to remove.
 		 */
 		const choreography = (scale: number, rise: number) => () => {
 			const eyebrow = node.querySelector('[data-hero="eyebrow"]');
@@ -295,12 +394,25 @@ export function heroSequence(): Attachment<HTMLElement> {
 
 			gsap.set(parts, { opacity: 0, y: rise });
 
-			gsap
-				.timeline({ defaults: { ease: EASE.entrance } })
-				.to(eyebrow, { opacity: 1, y: 0, duration: DUR.base }, 0.06 * scale)
-				.to(copy, { opacity: 1, y: 0, duration: DUR.deliberate }, 0.4 * scale)
-				.to(actions, { opacity: 1, y: 0, duration: DUR.base }, 0.62 * scale)
-				.to(micro, { opacity: 1, y: 0, duration: DUR.base }, 0.8 * scale);
+			const timeline = gsap.timeline();
+
+			/**
+			 * One beat is two tweens starting together — see `reveal` for why.
+			 * Opacity settles on the sharper curve because it governs legibility;
+			 * the rise carries on underneath on the softer one, and is still
+			 * travelling half a second after the words can be read.
+			 */
+			const beat = (element: Element | null, at: number) => {
+				if (!element) return;
+				timeline
+					.to(element, { opacity: 1, duration: DUR.cinematic, ease: EASE.entrance }, at * scale)
+					.to(element, { y: 0, duration: DUR.expansive, ease: EASE.inertial }, at * scale);
+			};
+
+			beat(eyebrow, 0);
+			beat(copy, 0.34);
+			beat(actions, 0.62);
+			beat(micro, 0.78);
 		};
 
 		const context = gsap.context(() => {
