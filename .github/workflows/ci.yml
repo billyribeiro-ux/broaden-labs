@@ -118,10 +118,9 @@ jobs:
         run: pnpm exec playwright install --with-deps
 
       - name: Playwright
-        # Every project EXCEPT `visual`. Snapshots are keyed by platform
-        # (snapshotPathTemplate includes {platform}) and only darwin baselines
-        # are committed, so running it here would compare Linux renderings
-        # against nothing. The `visual` job below is where that is handled.
+        # Every project EXCEPT `visual`, which has its own job below so a
+        # screenshot diff reports as a visual failure rather than burying itself
+        # among 380 functional tests.
         run: >-
           pnpm exec playwright test
           --project=chromium --project=firefox --project=webkit
@@ -138,19 +137,15 @@ jobs:
     name: Visual regression (linux baselines)
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # Not required to pass until Linux baselines exist in the repository.
+    # A real gate. Linux baselines live in `src/__visual/linux/` and were
+    # generated in THIS image (mcr.microsoft.com/playwright:v1.62.1-noble), then
+    # verified with three consecutive clean runs at 14/14 before being committed.
     #
-    # Font rasterisation and GPU compositing differ enough between macOS and
-    # Linux that darwin baselines cannot be compared against a Linux render —
-    # the diff would be thousands of antialiasing pixels and would say nothing
-    # about whether the design changed. Baselines have to be generated on the
-    # platform that will assert against them, and Docker was not available on
-    # the machine this was built on, so they do not exist yet.
-    #
-    # This job generates them and uploads them as an artifact. Commit
-    # `src/__visual/linux/` from that artifact once, then delete this
-    # `continue-on-error` line and the job becomes a real gate.
-    continue-on-error: true
+    # Baselines must be rendered on the platform that compares them: font
+    # rasterisation and compositing differ enough between macOS and Linux that a
+    # cross-platform diff is thousands of antialiasing pixels and says nothing
+    # about whether the design changed. `snapshotPathTemplate` keys them by
+    # {platform} so both sets coexist.
 
     steps:
       - uses: actions/checkout@v4

@@ -2,43 +2,20 @@
 
 ## Evidence gaps
 
-Things that are genuinely not determinable from what is available here. Each
-names what is missing, where it was looked for, and what it blocks. Nothing
-below has been guessed at or filled in with a plausible value.
-
-### Linux visual-regression baselines
-
-**Missing:** `src/__visual/linux/` — 18 PNG baselines rendered on Linux.
-
-**Looked in:** `src/__visual/` contains `darwin/` only. `playwright.config.ts`
-sets `snapshotPathTemplate: '{testDir}/__visual/{platform}/{arg}{ext}'`, so
-Playwright looks for a per-platform directory and finds none on Linux.
-
-**Why they cannot be produced here:** baselines must be rendered on the platform
-that will compare against them — font rasterisation and compositing differ
-enough between macOS and Linux that a cross-platform diff is thousands of
-antialiasing pixels and says nothing about whether the design changed. Producing
-them locally needs the official Playwright container; `docker info` fails on this
-machine, so there is no way to render them.
-
-**Blocks:** the `visual` job in `.github/workflows/ci.yml` being a real gate. It
-currently runs with `continue-on-error: true`, generates the baselines and
-uploads them as the `visual-baselines-linux` artifact. Commit that artifact's
-contents once, delete the `continue-on-error` line, and the gate is live.
-
 ### A real Vercel deployment
 
 **Missing:** confirmation from an actual deploy.
 
 **Looked in:** every failure mode was reproduced locally by clearing the
-environment and setting `VERCEL_ENV` by hand, and the emitted
-`.vercel/output/` was inspected directly — function runtime, `config.json`
-routes, and a cold boot of the handler with no environment at all.
+environment and setting `VERCEL_ENV` by hand, and the emitted `.vercel/output/`
+was inspected directly — function runtime, `config.json` routes, and a cold boot
+of the handler with no environment at all.
 
-**Why:** deploying needs the owner's Vercel account. Simulation is not the same
-as a deploy, and is not reported as one.
+**Why:** deploying needs the owner's Vercel account and an outward-facing action
+they have not asked for. Simulation is not the same as a deploy and is not
+reported as one.
 
-**Blocks:** nothing in the repository. Flagged so the distinction stays honest.
+**Blocks:** nothing in the repository.
 
 ### Legal copy
 
@@ -50,33 +27,42 @@ would be inventing a legal commitment.
 
 ---
 
-## Known, measured, not yet fixed
+## Known, measured, not yet explained
 
-### `/start-a-project` blocks the main thread for ~1.2s on a cold start
+### `/start-a-project` has a ~960ms main-thread task on a throttled connection
 
-**Status:** partially explained, not resolved.
+**Status:** precisely characterised, cause not identified. Do not "fix" it
+before it is understood.
 
-**Evidence:** Lighthouse reports TBT 1281ms on this route and 0–8ms on every
-other route measured. Reproduced outside Lighthouse with a Playwright probe at
-4x CPU throttling: one long task of 1270ms, and zero long tasks on `/work` under
-identical conditions.
+**What is established, by measurement:**
 
-**What it is not:** not JavaScript execution. A V8 CPU profile attributes 1376ms
-to `(program)` and only 23ms to any script. Not the GSAP chunk either — `/work`
-loads the same chunk with zero blocking, and this was measured again after GSAP
-was moved out of the layout.
+- Lighthouse reports TBT ~1281-1373ms on this route and 0ms on the four
+  prerendered routes.
+- It reproduces outside Lighthouse. With Lighthouse's exact throttling
+  (slow 4G, 150ms latency, 4x CPU) against a **pre-warmed** server:
+  `/start-a-project` 960ms, `/insights/...` 54ms, `/work` 0ms.
+- It is **not** server cold-start. TTFB in the run above was 2-4ms on all three
+  routes. An earlier hypothesis that blamed a cold preview server was wrong; the
+  real variable is network throttling, which the probe that produced that
+  hypothesis did not apply.
+- It is **not** JavaScript execution. A V8 CPU profile taken under the
+  reproducing conditions attributes ~24ms to script and 179ms to `(program)`
+  against 8,438ms idle. A Chrome trace shows the task as a bare `RunTask` whose
+  largest nested entry is `RunMicrotasks`.
+- It is route-specific and not explained by payload size: `/start-a-project`
+  and `/insights/...` both transfer 114 KiB of script, and only one blocks.
 
-**What is suspicious:** it only reproduces when this route is the first request
-against a freshly started preview server. Warming the server with any other
-route first drops it to 0ms. `/start-a-project` is the only route that is not
-prerendered, so it is the only one whose first response runs the SSR handler
-cold — but a slow server response is TTFB, not a main-thread long task, so that
-explanation is incomplete.
+**What is unique to the route:** it is the only route that is not prerendered,
+and the only one carrying the remote-function form client and its valibot
+schema.
 
-**Next step:** capture a full Chrome trace (`Tracing.start` with the
-`disabled-by-default-devtools.timeline` category) rather than a sampling
-profile, which is what would name a `(program)` task. Do not "fix" it before it
-is understood; the cause may be the local preview server rather than the site.
+**Next step:** a trace filtered to the reproducing conditions with
+`disabled-by-default-v8.compile` included, to see whether the wall-clock is
+script streaming/compilation that the sampler does not attribute.
+
+**Meanwhile:** `lighthouse-assertions.cjs` holds this route to an explicitly
+lower, commented performance floor rather than excluding it, so it cannot get
+worse silently.
 
 ---
 
@@ -90,3 +76,19 @@ and either gets built.
 - **§10 `query.live` demo** — §10 says "only if there is an actual useful
   live-data demonstration". It also uses SSE, whose behaviour on Vercel
   serverless is unverified.
+
+---
+
+## Closed
+
+- **Linux visual-regression baselines** — generated in
+  `mcr.microsoft.com/playwright:v1.62.1-noble`, verified with three consecutive
+  clean runs at 14/14, and committed to `src/__visual/linux/`. The CI `visual`
+  job is a real gate; `continue-on-error` is gone.
+
+  Generating them exposed a genuine flake: `font-display: optional` commits to
+  the fallback for the rest of the page load if the font misses its ~100ms block
+  period, so the homepage rendered 18,438px tall in one run and 18,712px in the
+  next and a different test failed each time. `visual.e2e.ts` now loads each page
+  twice and captures the second, when the font is cached and `optional` always
+  uses it. Never visible on macOS, where the fonts were always warm.

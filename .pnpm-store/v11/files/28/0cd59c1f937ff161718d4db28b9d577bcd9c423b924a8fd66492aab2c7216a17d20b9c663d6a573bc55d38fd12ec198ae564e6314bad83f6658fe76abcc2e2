@@ -1,0 +1,80 @@
+{
+  "name": "vitest-browser-svelte",
+  "type": "module",
+  "version": "3.0.0",
+  "description": "Render Svelte components in Vitest Browser Mode",
+  "author": "Vitest Community",
+  "license": "MIT",
+  "funding": "https://opencollective.com/vitest",
+  "homepage": "https://github.com/vitest-community/vitest-browser-svelte#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vitest-community/vitest-browser-svelte.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vitest-community/vitest-browser-svelte/issues"
+  },
+  "keywords": [
+    "svelte",
+    "vitest",
+    "browser",
+    "testing"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    },
+    "./pure": {
+      "types": "./dist/pure.d.mts",
+      "default": "./dist/pure.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "peerDependencies": {
+    "svelte": "^3 || ^4 || ^5 || ^5.0.0-next.0",
+    "vitest": "^4.0.0"
+  },
+  "dependencies": {
+    "@testing-library/svelte-core": "^1.1.3"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^2.24.1",
+    "@playwright/test": "^1.60.0",
+    "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "@types/node": "^24.10.1",
+    "@types/semver": "^7.7.1",
+    "@vitest/browser-playwright": "5.0.0-beta.3",
+    "@vitest/ui": "5.0.0-beta.3",
+    "bumpp": "^10.4.1",
+    "changelogithub": "^14.0.0",
+    "esbuild": "^0.27.3",
+    "eslint": "^9.8.0",
+    "playwright": "^1.60.0",
+    "semver": "^7.8.3",
+    "svelte": "^5.55.9",
+    "tsdown": "^0.22.3",
+    "tsx": "^4.17.0",
+    "typescript": "^5.5.4",
+    "vite": "^8.0.14",
+    "vitest": "5.0.0-beta.3",
+    "zx": "^8.1.4"
+  },
+  "scripts": {
+    "dev": "tsdown --watch --no-clean",
+    "build": "tsdown",
+    "test": "vitest",
+    "publish-ci": "tsx scripts/publish-ci.ts",
+    "release": "tsx scripts/release.ts",
+    "lint": "eslint --cache .",
+    "lint:fix": "pnpm lint --fix",
+    "typecheck": "tsc"
+  }
+}

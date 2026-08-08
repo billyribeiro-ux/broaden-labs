@@ -1,0 +1,55 @@
+{
+  "name": "@sveltejs/adapter-vercel",
+  "version": "7.0.0-next.6",
+  "description": "A SvelteKit adapter that creates a Vercel app",
+  "keywords": [
+    "adapter",
+    "deploy",
+    "hosting",
+    "svelte",
+    "sveltekit",
+    "vercel"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sveltejs/kit.git",
+    "directory": "packages/adapter-vercel"
+  },
+  "license": "MIT",
+  "homepage": "https://svelte.dev/docs/kit/adapter-vercel",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "index.d.ts",
+  "files": [
+    "files",
+    "index.js",
+    "utils.js",
+    "index.d.ts"
+  ],
+  "dependencies": {
+    "@vercel/nft": "^1.10.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.19",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10",
+    "@sveltejs/kit": "^3.0.0-next.16"
+  },
+  "peerDependencies": {
+    "@sveltejs/kit": "^3.0.0-next.0"
+  },
+  "scripts": {
+    "lint": "prettier --check .",
+    "format": "pnpm lint --write",
+    "check": "tsc",
+    "test:unit": "vitest run",
+    "test:build": "cd test/apps/basic && pnpm build",
+    "test": "pnpm test:unit && pnpm test:build"
+  }
+}

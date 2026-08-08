@@ -33,7 +33,31 @@ test.describe('visual regression', () => {
 
 	async function settle(page: Page, path: string) {
 		// The fallback tier keeps the hero deterministic; see the note above.
-		await page.goto(`${path}${path.includes('?') ? '&' : '?'}tier=fallback`);
+		const url = `${path}${path.includes('?') ? '&' : '?'}tier=fallback`;
+
+		/**
+		 * Loaded TWICE, and the second load is the one that is captured.
+		 *
+		 * The webfonts use `font-display: optional`, which gives the browser a
+		 * ~100ms block period and then commits to the fallback for the REST OF THAT
+		 * PAGE LOAD if the font has not arrived. That is exactly the behaviour we
+		 * want in production — it is why CLS is zero — but it makes a screenshot a
+		 * coin toss on a cold cache: the same page rendered 18,438px tall in one run
+		 * and 18,712px in the next, because the headline rewrapped in fallback
+		 * metrics. 274px of structural difference, not antialiasing.
+		 *
+		 * It never surfaced on macOS, where the fonts were always warm. It appeared
+		 * immediately in the Linux container, and a different test failed each run.
+		 *
+		 * The first load populates the HTTP cache; on the second, the font is
+		 * available synchronously and `optional` always uses it. Waiting longer on a
+		 * single load cannot fix this — once the block period has elapsed, `optional`
+		 * will not swap.
+		 */
+		await page.goto(url);
+		await page.evaluate(() => document.fonts.ready);
+
+		await page.goto(url);
 
 		// Freeze anything that could differ between runs BEFORE the page scripts
 		// have a chance to read them.
