@@ -30,3 +30,6 @@ blob-report
 
 # Lighthouse CI reports are build artifacts, not source.
 .lighthouseci
+
+# pnpm store, created inside the project by a containerised install.
+.pnpm-store
