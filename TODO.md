@@ -17,13 +17,25 @@ reported as one.
 
 **Blocks:** nothing in the repository.
 
-### Legal copy
+### Legal copy — two values need confirming, the documents are written
 
-**Missing:** `/privacy`, `/terms`, `/accessibility` say plainly that no policy
-has been written. They are `noindex` and absent from the sitemap.
+`/privacy`, `/terms` and `/accessibility` now carry real content, are indexable,
+and are listed in the sitemap.
 
-**Why:** this is counsel's work, not engineering's. Inventing a privacy policy
-would be inventing a legal commitment.
+**Still needs a human decision**, both in `src/lib/content/legal.ts`:
+
+1. `ENTITY` — currently the trading name "Broaden Labs". If the studio is
+   incorporated, this should be the registered legal name.
+2. `JURISDICTION` — currently "the United States", inferred from hard evidence
+   (the .com registration, the Vercel account, the `aws-us-east-1` database
+   region) rather than guessed. A governing-law clause is stronger naming a
+   state.
+
+Everything else in those documents was read out of the code it describes and is
+asserted by `seo.e2e.ts`: the field lists from `project_inquiries` and
+`newsletter_subscribers`, the one-way IP hash from `hash.ts`, and the "no
+cookies, no analytics, no third-party scripts" claim from a search of `src/`
+that found none. Counsel review is still advisable before relying on them.
 
 ---
 

@@ -22,7 +22,13 @@ const ROUTES = [
 	'/insights/ai-features-need-failure-design'
 ] as const;
 
-const NOINDEX_ROUTES = ['/privacy', '/terms', '/accessibility'] as const;
+/**
+ * Nothing is noindex any more. The legal pages carried it while they stated that
+ * no policy had been written; they now have real content and are indexable, so
+ * the assertion is inverted — they must be in the sitemap and must NOT be
+ * noindex. An empty list here would silently stop testing anything.
+ */
+const LEGAL_ROUTES = ['/privacy', '/terms', '/accessibility'] as const;
 
 function jsonLdBlocks(html: string): unknown[] {
 	const matches = [...html.matchAll(/application\/ld\+json">(.*?)</gs)];
@@ -159,17 +165,45 @@ test.describe('crawl surface', () => {
 		for (const route of ROUTES) {
 			expect(xml, `sitemap is missing ${route}`).toContain(`${route}</loc>`);
 		}
-		// The legal pages say no policy has been written yet. Asking a search
-		// engine to index that advertises the gap.
-		for (const route of NOINDEX_ROUTES) {
-			expect(xml, `sitemap should not list ${route}`).not.toContain(`${route}</loc>`);
+		// The legal pages are listed too, now that they have real content.
+		for (const route of LEGAL_ROUTES) {
+			expect(xml, `sitemap is missing ${route}`).toContain(`${route}</loc>`);
 		}
 	});
 
-	test('unwritten legal pages are noindex', async ({ request }) => {
-		for (const route of NOINDEX_ROUTES) {
+	test('the legal pages are indexable and substantive', async ({ request }) => {
+		for (const route of LEGAL_ROUTES) {
 			const html = await (await request.get(route)).text();
-			expect(html, `${route} should be noindex`).toMatch(/name="robots" content="noindex/);
+
+			expect(html, `${route} should not be noindex`).not.toMatch(/name="robots" content="noindex/);
+
+			/**
+			 * Length is asserted because the failure mode this replaces is a page
+			 * that is technically indexable and says nothing — which is what these
+			 * three were. A privacy policy Google can crawl but that contains no
+			 * policy is worse than one it cannot find.
+			 */
+			const text = html
+				.replace(/<[^>]+>/g, ' ')
+				.replace(/\s+/g, ' ')
+				.trim();
+			expect(text.length, `${route} has almost no content`).toBeGreaterThan(1500);
+
+			// A machine-readable last-updated date is the one date a reader of a
+			// legal page needs to be able to trust.
+			expect(html, `${route} has no <time datetime>`).toMatch(/<time datetime="\d{4}-\d{2}-\d{2}"/);
+		}
+	});
+
+	test('the privacy policy declares what the code actually collects', async ({ request }) => {
+		/**
+		 * Guards the specific claims that would become FALSE if the code changed
+		 * and the policy did not — the two most consequential ones being that no
+		 * cookies are set and that the raw IP address is never stored.
+		 */
+		const html = await (await request.get('/privacy')).text();
+		for (const claim of ['cookies', 'hashed', 'Vercel', 'Neon']) {
+			expect(html, `privacy policy does not mention ${claim}`).toContain(claim);
 		}
 	});
 

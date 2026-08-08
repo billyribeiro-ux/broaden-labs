@@ -29,16 +29,22 @@ const STATIC_ENTRIES: readonly Entry[] = [
 	{ path: '/services', priority: '0.9', changefreq: 'monthly' },
 	{ path: '/about', priority: '0.7', changefreq: 'yearly' },
 	{ path: '/insights', priority: '0.8', changefreq: 'monthly' },
-	{ path: '/start-a-project', priority: '0.9', changefreq: 'yearly' }
+	{ path: '/start-a-project', priority: '0.9', changefreq: 'yearly' },
+
+	/**
+	 * The legal pages ARE listed, at low priority.
+	 *
+	 * They were previously absent and `noindex`, because they said no policy had
+	 * been written and asking a search engine to index "this does not exist yet"
+	 * advertises the gap. They now carry real content, so they are indexable —
+	 * and a site whose privacy policy cannot be found is a worse signal than one
+	 * whose privacy policy ranks low.
+	 */
+	{ path: '/privacy', priority: '0.3', changefreq: 'yearly' },
+	{ path: '/terms', priority: '0.3', changefreq: 'yearly' },
+	{ path: '/accessibility', priority: '0.3', changefreq: 'yearly' }
 ];
 
-/**
- * /privacy, /terms and /accessibility are deliberately ABSENT.
- *
- * They currently state that no policy has been written yet, and asking a search
- * engine to index a page that says "this does not exist yet" advertises the gap.
- * They carry `noindex` for the same reason. Add them here when they have content.
- */
 export const GET: RequestHandler = () => {
 	const entries: Entry[] = [
 		...STATIC_ENTRIES,
