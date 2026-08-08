@@ -33,3 +33,9 @@ blob-report
 
 # pnpm store, created inside the project by a containerised install.
 .pnpm-store
+# Added by `vercel link`, then narrowed. Bare `.env*` also swallows
+# .env.example, which is the file the README tells you to copy — and an ignored
+# .env.example silently stops being maintained.
+.env
+.env.*
+!.env.example
