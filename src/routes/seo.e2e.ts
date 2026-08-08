@@ -175,7 +175,26 @@ test.describe('crawl surface', () => {
 
 	test('robots.txt points at the sitemap and shields the remote endpoints', async ({ request }) => {
 		const txt = await (await request.get('/robots.txt')).text();
-		expect(txt).toContain('Sitemap: https://broadenlabs.com/sitemap.xml');
+		/**
+		 * Asserted against the ORIGIN THE SITE CLAIMS, not a literal domain.
+		 *
+		 * This previously asserted the string 'https://broadenlabs.com/sitemap.xml'
+		 * and passed while being wrong in production: robots.txt was a static file
+		 * with the domain baked in, so the first real deployment told crawlers the
+		 * sitemap lived on a domain that does not resolve, while every canonical and
+		 * sitemap entry on the same site correctly used PUBLIC_ORIGIN. A test that
+		 * hardcodes the same value as the code cannot detect that they disagree with
+		 * reality — it only proves they were copied from each other.
+		 *
+		 * The real invariant is that robots.txt and the canonical agree.
+		 */
+		const canonical = /<link rel="canonical" href="([^"]+)"/.exec(
+			await (await request.get('/')).text()
+		)?.[1];
+		expect(canonical, 'homepage has no canonical').toBeTruthy();
+		const origin = new URL(canonical!).origin;
+
+		expect(txt).toContain(`Sitemap: ${origin}/sitemap.xml`);
 		expect(txt).toContain('Disallow: /_app/');
 	});
 

@@ -188,6 +188,14 @@ export default defineConfig({
 				test: {
 					name: 'server',
 					environment: 'node',
+
+					/**
+					 * Runs before any test file and throws if DATABASE_URL is not a
+					 * local host. See assert-local-database.ts: a Vercel-written
+					 * .env.local silently retargeted this suite at the production Neon
+					 * database, and the integration tests write rows.
+					 */
+					setupFiles: ['./src/lib/server/testing/assert-local-database.ts'],
 					include: ['src/**/*.{test,spec}.{js,ts}'],
 					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
 				}

@@ -1,4 +1,22 @@
 import { defineConfig, devices } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { assertLocalDatabase } from './src/lib/server/testing/assert-local-database';
+
+/**
+ * Playwright does not load .env — Vite does, inside the webServer command. The
+ * guard has to read the same file the server will, or it would pass on an unset
+ * variable and let the server come up pointed at production.
+ */
+function readDotEnvDatabaseUrl(): string | undefined {
+	try {
+		return /^DATABASE_URL=(.*)$/m
+			.exec(readFileSync('.env', 'utf8'))?.[1]
+			?.trim()
+			.replace(/^["']|["']$/g, '');
+	} catch {
+		return undefined;
+	}
+}
 
 /**
  * E2E runs against a real production build, never the dev server: CSP, asset
@@ -40,6 +58,13 @@ const PREFERENCE_SPECS = '**/*.reduced.e2e.{ts,js}';
  * compare its 2x-scaled render against a 1x Chromium baseline.
  */
 const VISUAL_SPECS = '**/visual.e2e.{ts,js}';
+
+/**
+ * The E2E form specs write to the database too, so they get the same guard as
+ * the Vitest suite. Thrown at config load, which fails the run before a browser
+ * or a server starts. See src/lib/server/testing/assert-local-database.ts.
+ */
+assertLocalDatabase(process.env.DATABASE_URL ?? readDotEnvDatabaseUrl());
 
 export default defineConfig({
 	testDir: 'src',
