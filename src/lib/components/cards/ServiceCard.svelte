@@ -4,15 +4,28 @@
 
 	interface Props {
 		service: Service;
+		/**
+		 * The heading level is a PROP because the correct level depends on where the
+		 * card sits, and a card cannot know that. On /work and /services the cards
+		 * follow the <h1> with no section heading between, so they are that page's
+		 * top-level sections and must be <h2>; on the homepage and the detail pages
+		 * they sit under a section <h2>, so <h3> is right.
+		 *
+		 * Hard-coding <h3> shipped a real `heading-order` violation on /work that the
+		 * axe E2E could not catch: axe tags that rule `best-practice`, not WCAG, so
+		 * the suite's `wcag22aa` filter excluded it. Lighthouse found it. shell.e2e.ts
+		 * now checks the rule explicitly.
+		 */
+		headingLevel?: 2 | 3;
 	}
 
-	let { service }: Props = $props();
+	let { service, headingLevel = 3 }: Props = $props();
 </script>
 
 <a class="card" href="/services/{service.slug}">
 	<span class="number" aria-hidden="true">{service.number}</span>
 
-	<h3 class="headline">{service.cardHeadline}</h3>
+	<svelte:element this={`h${headingLevel}`} class="headline">{service.cardHeadline}</svelte:element>
 	<p class="copy">{service.cardCopy}</p>
 
 	<ul class="capabilities" role="list">

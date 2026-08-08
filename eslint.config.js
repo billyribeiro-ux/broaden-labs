@@ -34,6 +34,17 @@ export default defineConfig(
 		}
 	},
 	{
+		/**
+		 * The Lighthouse CI config files are CommonJS by necessity: `@lhci/cli`
+		 * loads them with `require()`, and this package is `"type": "module"`, so
+		 * they must carry the `.cjs` extension and use `require()` themselves. The
+		 * ban on `require()` is right for application code and simply does not
+		 * apply to a file the tool insists on loading that way.
+		 */
+		files: ['**/*.cjs'],
+		rules: { '@typescript-eslint/no-require-imports': 'off' }
+	},
+	{
 		// Override or add rule settings here, such as:
 		// 'svelte/button-has-type': 'error'
 		rules: {}

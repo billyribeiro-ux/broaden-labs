@@ -88,7 +88,7 @@
 		{#if filtered.length > 0}
 			<ul class="articles" role="list">
 				{#each filtered as insight (insight.slug)}
-					<li><ArticleCard {insight} /></li>
+					<li><ArticleCard {insight} headingLevel={2} /></li>
 				{/each}
 			</ul>
 		{:else}

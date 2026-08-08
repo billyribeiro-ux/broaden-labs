@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { goto } from '$app/navigation';
 	import Eyebrow from '#lib/components/typography/Eyebrow.svelte';
 	import DisplayHeading from '#lib/components/typography/DisplayHeading.svelte';
@@ -38,8 +39,34 @@
 		'Product Design'
 	];
 
-	const activeIndustry = $derived(page.url.searchParams.get('industry'));
-	const activeCapability = $derived(page.url.searchParams.get('capability'));
+	/**
+	 * An OVERRIDABLE derived, not `page.url.search` read directly.
+	 *
+	 * `goto()` is asynchronous, so `page.url` still holds the OLD query at the
+	 * moment of a second click. Building the next href from it dropped the filter
+	 * the visitor had just applied: clicking FinTech and then Real-Time quickly
+	 * navigated to `/work?capability=Real-Time` and showed "3 projects matching"
+	 * — every Real-Time project — with the industry filter silently gone. It was
+	 * only reproducible without an artificial pause between the clicks, which is
+	 * to say: only the way a real person actually uses it.
+	 *
+	 * Assigning to a `$derived` is how Svelte 5.25+ models exactly this — an
+	 * optimistic value that the source of truth later overwrites. `applyFilter`
+	 * writes the requested query here synchronously, so a second click builds on
+	 * the first; when the navigation lands, `page.url.search` changes and the
+	 * derived recomputes, discarding the override on its own.
+	 *
+	 * Deliberately NOT an `$effect` that syncs a `$state` back to the URL. The
+	 * Svelte docs are explicit that effects should not be used to synchronise
+	 * state, and that version of this had to compare the two values and reset one
+	 * of them by hand — more code, and a reset that could be missed.
+	 */
+	let search = $derived(page.url.search);
+
+	const params = $derived(new SvelteURLSearchParams(search));
+
+	const activeIndustry = $derived(params.get('industry'));
+	const activeCapability = $derived(params.get('capability'));
 
 	const filtered = $derived(
 		CASE_STUDIES.filter((study) => {
@@ -64,7 +91,7 @@
 		// wrapper around a throwaway string builder, and hand-rolling the query
 		// encoding instead would be worse than either.
 		// eslint-disable-next-line svelte/prefer-svelte-reactivity
-		const params = new URLSearchParams(page.url.search);
+		const params = new URLSearchParams(search);
 		if (value === null || params.get(key) === value) {
 			params.delete(key);
 		} else {
@@ -90,6 +117,12 @@
 	function applyFilter(event: MouseEvent, href: string) {
 		if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
 		event.preventDefault();
+
+		// Set BEFORE the await, so a second click that arrives while this
+		// navigation is still in flight builds on it rather than on the stale URL.
+		const queryStart = href.indexOf('?');
+		search = queryStart === -1 ? '' : href.slice(queryStart);
+
 		void goto(href, { reset: false });
 	}
 
@@ -146,7 +179,7 @@
 							class="chip"
 							class:active={activeIndustry === industry}
 							aria-current={activeIndustry === industry ? 'true' : undefined}
-							onclick={(event) => applyFilter(event, href)}
+							onclick={(event) => applyFilter(event, filterHref('industry', industry))}
 						>
 							{industry}
 						</a>
@@ -173,7 +206,7 @@
 							class="chip"
 							class:active={activeCapability === capability}
 							aria-current={activeCapability === capability ? 'true' : undefined}
-							onclick={(event) => applyFilter(event, href)}
+							onclick={(event) => applyFilter(event, filterHref('capability', capability))}
 						>
 							{capability}
 						</a>
@@ -196,7 +229,7 @@
 		{#if filtered.length > 0}
 			<ul class="projects" role="list">
 				{#each filtered as study, index (study.slug)}
-					<li><ProjectCard {study} {index} /></li>
+					<li><ProjectCard {study} {index} headingLevel={2} /></li>
 				{/each}
 			</ul>
 		{:else}

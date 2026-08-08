@@ -25,7 +25,9 @@
 		"db:studio": "drizzle-kit studio",
 		"db:seed": "tsx src/lib/server/db/seed.ts",
 		"og:build": "tsx scripts/build-og.ts",
-		"fonts:build": "python3 scripts/build-fonts.py"
+		"fonts:build": "python3 scripts/build-fonts.py",
+		"lighthouse": "lhci autorun --config=./lighthouserc.cjs",
+		"lighthouse:collect": "lhci collect --config=./lighthouserc.cjs"
 	},
 	"dependencies": {
 		"@threlte/core": "^8.5.16",
@@ -40,6 +42,7 @@
 	"devDependencies": {
 		"@axe-core/playwright": "^4.12.1",
 		"@eslint/js": "^10.0.1",
+		"@lhci/cli": "^0.15.1",
 		"@playwright/test": "^1.62.1",
 		"@sveltejs/adapter-vercel": "7.0.0-next.6",
 		"@sveltejs/kit": "3.0.0-next.16",

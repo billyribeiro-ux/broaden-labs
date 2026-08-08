@@ -42,7 +42,7 @@
 		<Aperture mode="scale" />
 		<ul class="cards" role="list">
 			{#each SERVICES as service (service.slug)}
-				<li><ServiceCard {service} /></li>
+				<li><ServiceCard {service} headingLevel={2} /></li>
 			{/each}
 		</ul>
 	</div>

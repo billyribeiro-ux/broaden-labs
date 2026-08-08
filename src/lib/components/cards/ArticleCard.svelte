@@ -3,9 +3,16 @@
 
 	interface Props {
 		insight: Insight;
+		/**
+		 * See ProjectCard for the full reasoning. On /insights the cards follow the
+		 * <h1> with no section heading between them, so they are that page's
+		 * top-level sections and must be <h2>. Everywhere else they sit under a
+		 * section <h2> and <h3> is correct.
+		 */
+		headingLevel?: 2 | 3;
 	}
 
-	let { insight }: Props = $props();
+	let { insight, headingLevel = 3 }: Props = $props();
 
 	// Intl rather than a hand-built format. A regex over a formatted date string
 	// is how a date becomes "20-3341".
@@ -22,7 +29,7 @@
 		<span class="dot" aria-hidden="true">·</span>
 		<span>{insight.readingMinutes} min read</span>
 	</p>
-	<h3 class="title">{insight.title}</h3>
+	<svelte:element this={`h${headingLevel}`} class="title">{insight.title}</svelte:element>
 	<p class="dek">{insight.dek}</p>
 </a>
 

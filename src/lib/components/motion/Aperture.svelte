@@ -13,7 +13,17 @@
 	 *
 	 * M3 renders the resting state. M5 drives `--aperture` from ScrollTrigger.
 	 */
-	import { apertureScroll } from '#lib/animation/motion';
+	import { lazyAttach } from '#lib/animation/lazy';
+
+	/**
+	 * The scroll driver is reached through lazyAttach, not imported at the top of
+	 * this file. Aperture appears on nearly every route, so a static import of
+	 * motion.ts put GSAP into nearly every route's chunk.
+	 */
+	const scrollDriven = lazyAttach(async () => {
+		const { apertureScroll } = await import('#lib/animation/motion');
+		return apertureScroll();
+	});
 
 	type Mode = 'rule' | 'bracket' | 'connector' | 'scale' | 'underline' | 'gate';
 
@@ -42,7 +52,7 @@
 	class="aperture"
 	data-mode={mode}
 	style={driven ? undefined : `--aperture: ${extent}`}
-	{@attach driven ? apertureScroll() : undefined}
+	{@attach driven ? scrollDriven : undefined}
 	viewBox="0 0 1000 8"
 	preserveAspectRatio="none"
 	aria-hidden="true"

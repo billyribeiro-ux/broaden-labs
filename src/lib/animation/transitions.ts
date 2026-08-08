@@ -1,6 +1,5 @@
 import { onNavigate } from '$app/navigation';
-import { gsap } from './gsap.ts';
-import { DUR, EASE } from './motion.ts';
+import { DUR, EASE } from './tokens.ts';
 
 /**
  * Page transitions. Brief §72.
@@ -41,33 +40,43 @@ export function usePageTransitions(): void {
 		const main = document.querySelector('main');
 		if (!main) return;
 
+		/**
+		 * GSAP is fetched HERE, on the first real navigation, rather than imported
+		 * at the top of this module. A static import put the whole 122 KB library
+		 * into the root layout chunk, so every visitor to every page downloaded it
+		 * before first paint to power a transition that, by definition, cannot run
+		 * until they navigate. Kit awaits this promise before swapping the DOM, so
+		 * the import fits the existing contract with no extra machinery.
+		 */
 		return new Promise<() => void>((resolve) => {
-			gsap.to(main, {
-				opacity: 0,
-				y: -8,
-				duration: DUR.fast,
-				ease: EASE.exit,
-				onComplete: () =>
-					resolve(() => {
-						// Runs after Kit has swapped the DOM. `main` is the same element —
-						// Kit replaces its children, not the element itself — so the
-						// entrance animates the new content.
-						gsap.fromTo(
-							main,
-							{ opacity: 0, y: 8 },
-							{
-								opacity: 1,
-								y: 0,
-								duration: DUR.base,
-								ease: EASE.entrance,
-								// clearProps so no inline opacity or transform survives the
-								// transition. A leftover `opacity: 1` would be harmless; a
-								// leftover transform creates a containing block that breaks
-								// `position: fixed` descendants on the next page.
-								clearProps: 'opacity,transform'
-							}
-						);
-					})
+			void import('./gsap.ts').then(({ gsap }) => {
+				gsap.to(main, {
+					opacity: 0,
+					y: -8,
+					duration: DUR.fast,
+					ease: EASE.exit,
+					onComplete: () =>
+						resolve(() => {
+							// Runs after Kit has swapped the DOM. `main` is the same element —
+							// Kit replaces its children, not the element itself — so the
+							// entrance animates the new content.
+							gsap.fromTo(
+								main,
+								{ opacity: 0, y: 8 },
+								{
+									opacity: 1,
+									y: 0,
+									duration: DUR.base,
+									ease: EASE.entrance,
+									// clearProps so no inline opacity or transform survives the
+									// transition. A leftover `opacity: 1` would be harmless; a
+									// leftover transform creates a containing block that breaks
+									// `position: fixed` descendants on the next page.
+									clearProps: 'opacity,transform'
+								}
+							);
+						})
+				});
 			});
 		});
 	});

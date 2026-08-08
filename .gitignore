@@ -27,3 +27,6 @@ test-results
 # Playwright
 playwright-report
 blob-report
+
+# Lighthouse CI reports are build artifacts, not source.
+.lighthouseci

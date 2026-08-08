@@ -106,6 +106,24 @@ export default defineConfig({
 			// tab focus and visibility change without the timer.
 			version: { pollInterval: 0 },
 
+			/**
+			 * `inlineStyleThreshold` is NOT set, and that is a reversal.
+			 *
+			 * Setting it to 8192 did what it promised — nine render-blocking
+			 * stylesheets on the homepage became one, worth ~150-300ms of blocked
+			 * render. But it also made Firefox throw, intermittently, on
+			 * client-side navigation: "Unable to preload CSS for
+			 * /_app/immutable/assets/Button.DOtvGb43.css". Kit inlines the rules
+			 * into the document and leaves the <link> behind as a disabled
+			 * `media="(max-width: 0)"` element for the client router, and Vite's
+			 * preload helper still tries to fetch it.
+			 *
+			 * A stylesheet that sometimes fails to load on a real browser is not
+			 * worth 200ms, and `shell.e2e.ts` asserts that no route logs a console
+			 * error. The bulk of the performance win came from the two dynamic-import
+			 * boundaries anyway: homepage 47 -> 91-99 with the CSS still split.
+			 */
+
 			// A broken internal link should fail the build, not become a 404 in
 			// production. Brief §120: "No broken internal links."
 			prerender: { handleHttpError: 'fail', handleMissingId: 'fail' }
@@ -121,6 +139,13 @@ export default defineConfig({
 		// lands under that limit, which would kill separate caching, inflate it ~33%
 		// and make it impossible to <link rel=preload>. Fonts are never inlined.
 		assetsInlineLimit: (filePath: string) => (filePath.endsWith('.woff2') ? false : undefined)
+
+		/**
+		 * NOTE: `build.cssCodeSplit` is NOT set here. It is in SvelteKit's
+		 * `enforced_config`, so Kit overwrites any value and prints "The following
+		 * Vite config options will be overridden by SvelteKit". The equivalent
+		 * outcome is reached through `kit.inlineStyleThreshold` above instead.
+		 */
 	},
 
 	test: {

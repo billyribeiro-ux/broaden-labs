@@ -23,7 +23,25 @@
 		FINAL_BRAND_MOMENT
 	} from '#lib/content/narrative';
 	import { PUBLIC_CONTACT_EMAIL } from '$app/env/public';
-	import { heroSequence, splitReveal, reveal } from '#lib/animation/motion';
+	import { lazyAttach } from '#lib/animation/lazy';
+	import type { RevealOptions } from '#lib/animation/motion';
+
+	/**
+	 * Every attachment on this page reaches motion.ts — and therefore GSAP —
+	 * through lazyAttach rather than a static import. See lazy.ts: `{@attach}`
+	 * defers execution but not bundling, so the static import shipped 122 KB of
+	 * animation library on the critical path of the largest page in the site.
+	 */
+	const heroSequence = () =>
+		lazyAttach<HTMLElement>(async () => (await import('#lib/animation/motion')).heroSequence());
+
+	const splitReveal = (options: { start?: string } = {}) =>
+		lazyAttach<HTMLElement>(async () =>
+			(await import('#lib/animation/motion')).splitReveal(options)
+		);
+
+	const reveal = (options: RevealOptions = {}) =>
+		lazyAttach<HTMLElement>(async () => (await import('#lib/animation/motion')).reveal(options));
 	import WebGLStage from '#lib/components/three/WebGLStage.svelte';
 	import Seo from '#lib/components/seo/Seo.svelte';
 

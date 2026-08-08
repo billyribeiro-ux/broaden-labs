@@ -1,8 +1,6 @@
 <script lang="ts">
-	import { Canvas } from '@threlte/core';
-	import { NoToneMapping } from 'three';
+	import type { Component } from 'svelte';
 	import SceneFallback from './SceneFallback.svelte';
-	import ApertureField from './ApertureField.svelte';
 	import { detectTier, TIER_ROWS, type Tier } from '#lib/three/capability.svelte';
 
 	/**
@@ -14,10 +12,15 @@
 	 * state change the client owns — so there is nothing for hydration to
 	 * mismatch on.
 	 *
-	 * The Threlte import is DYNAMIC for the same reason §88 asks for a JS budget:
-	 * three.js is the single largest dependency in the project, and a visitor
-	 * without WebGL, or with reduced motion, should never download it. The
-	 * homepage becomes readable before this chunk is even requested.
+	 * The scene is loaded through `import('./ApertureScene.svelte')` and NOTHING
+	 * in this file may import three.js or Threlte statically — that is the whole
+	 * point of ApertureScene existing as a separate module. An earlier version of
+	 * this component imported `Canvas` and `NoToneMapping` at the top and gated
+	 * only the markup, and the comment here claimed the import was dynamic. It was
+	 * not: `{#if}` gates rendering, never bundling. Lighthouse caught it — 192 KiB
+	 * of three.js shipped to every mobile visitor, including the `fallback` tier
+	 * that never renders a canvas. `webgl.bundle.spec.ts` now asserts the split so
+	 * a future static import fails the build rather than the score.
 	 */
 	interface Props {
 		/**
@@ -30,7 +33,13 @@
 	let { force }: Props = $props();
 
 	let tier = $state<Tier>('fallback');
-	let sceneReady = $state(false);
+
+	/**
+	 * `$state.raw`, not `$state`: this holds a component — a function with a
+	 * prototype — and deep-proxying it would be both pointless and wrong. It is
+	 * only ever replaced wholesale.
+	 */
+	let Scene = $state.raw<Component<{ tier: Tier; rows: number }> | null>(null);
 
 	/**
 	 * Detection and the dynamic import both live in an attachment rather than
@@ -56,40 +65,30 @@
 		tier = detected;
 
 		if (detected !== 'fallback') {
-			// Only now is three.js worth fetching.
-			void import('@threlte/core').then(() => {
-				if (!disposed) sceneReady = true;
+			// Only now is three.js worth fetching. This is the ONE reference to the
+			// scene module anywhere in the app, and it is what makes it a chunk.
+			void import('./ApertureScene.svelte').then((module) => {
+				if (!disposed) Scene = module.default;
 			});
 		}
 
 		return () => {
 			disposed = true;
-			sceneReady = false;
+			Scene = null;
 		};
 	}
 
 	const rows = $derived(TIER_ROWS[tier]);
-	const showCanvas = $derived(tier !== 'fallback' && sceneReady);
 </script>
 
 <div class="stage" data-tier={tier} {@attach initialise}>
-	{#if showCanvas}
+	{#if Scene}
 		<!--
-			<Canvas> is SSR-safe by construction — its renderer only mounts inside an
-			internal `{#if canvas && dom}` — but it is still gated here so the three
-			chunk is never fetched for a tier that cannot use it.
-
-			dpr as a [min, max] tuple CLAMPS devicePixelRatio rather than setting it
-			(§74). A 3x phone rendering this at native density would burn GPU on
-			pixels nobody can distinguish on an outline drawing.
-
-			NoToneMapping because Threlte defaults to AgX, which would shift the
-			azurite accent away from the value the rest of the design system uses —
-			the hero would be a slightly different blue from every other accent.
+			`Scene` is null on the server and on the first client frame, so the SVG
+			below is what SSR emits and what hydration matches. It becomes non-null
+			only after the tier is known AND the chunk has arrived.
 		-->
-		<Canvas dpr={[1, 1.75]} toneMapping={NoToneMapping} renderMode="on-demand">
-			<ApertureField {tier} {rows} />
-		</Canvas>
+		<Scene {tier} {rows} />
 	{:else}
 		<SceneFallback rows={rows || 8} />
 	{/if}

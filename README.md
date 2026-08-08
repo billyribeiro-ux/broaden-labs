@@ -39,6 +39,24 @@ pnpm dev
 | `pnpm db:generate` / `db:migrate` / `db:studio` | Drizzle                                                     |
 | `pnpm fonts:build`                              | Re-subset the webfonts (needs `fonttools` + `brotli`)       |
 | `pnpm og:build`                                 | Re-render the social images                                 |
+| `pnpm lighthouse`                               | Lighthouse CI: 5 URLs × 3 runs, then assert                 |
+
+`pnpm lighthouse` builds, serves, and measures on **throttled mobile** — slow 4G
+and 4x CPU, which is how Google evaluates the site. Thresholds live in
+`lighthouse-assertions.cjs`; every one of them records the measured value it was
+derived from, and `/start-a-project` is held to an explicitly lower, documented
+bar rather than being quietly excluded. Chrome comes from Playwright's pinned
+build so the score means the same thing locally and in CI.
+
+## CI
+
+`.github/workflows/ci.yml` — five jobs: types/lint/unit (against a real
+Postgres 16 service), end-to-end across seven Playwright projects, visual
+regression, Lighthouse, and a dependency audit. The pnpm version is read from
+`packageManager` and the Node version from `engines`, so neither is pinned twice.
+
+The `visual` job runs with `continue-on-error` until Linux baselines exist —
+see "Evidence gaps" in `TODO.md` for exactly why and how to close it.
 
 `pnpm test:e2e` always rebuilds — the Playwright `webServer` command is
 `build && preview` and `reuseExistingServer` is off, because reusing a running
@@ -75,8 +93,30 @@ _credentials_ is not.
   hand — that caused a real leak, and `motion.e2e.ts` exists to catch it.
 - **`src/lib/components/three/`** — Threlte. The tier starts at `fallback` and
   only upgrades on the client, which is what makes it SSR-safe with no `browser`
-  guard. three.js is dynamically imported and stays out of the initial payload.
-  Force a tier by hand with `?tier=rich|medium|still|fallback`.
+  guard. three.js lives in `ApertureScene.svelte`, reached only through
+  `import()` from `WebGLStage`, so it stays out of the initial payload. Force a
+  tier by hand with `?tier=rich|medium|still|fallback`.
+
+### The bundling boundaries, and why they are tested
+
+`{#if}` gates rendering. `{@attach}` gates execution. **Neither gates bundling —
+only `import()` does.** This project shipped that mistake twice, and both times
+the code read as lazy while the bundle was not:
+
+| Was                                                                                   | Cost                                                                                                                                                       | Now                                                                   |
+| ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `WebGLStage` imported `Canvas`/`three` at the top and gated `<Canvas>` behind `{#if}` | three.js in `nodes/2` — **763 KB raw / 192 KiB transferred**, downloaded by every mobile visitor including the `fallback` tier that never renders a canvas | `ApertureScene.svelte` behind `import()`; `nodes/2` is **13 KB**      |
+| `+layout.svelte` imported `usePageTransitions` → `transitions.ts` → `gsap.ts`         | **122 KB of GSAP in the root layout chunk**, on every route including `/privacy`, to power a transition that cannot run until you navigate                 | `lazyAttach()` in `src/lib/animation/lazy.ts`; GSAP is one lazy chunk |
+
+Neither was visible to TypeScript, ESLint or `svelte-check` — the only evidence
+is the emitted chunk. So `src/lib/components/three/bundle.spec.ts` reads the
+built output and fails if either library reappears in a route node. It skips
+itself when there is no build (correct on a clean checkout) and CI runs it again
+after `pnpm build`, where it counts.
+
+Lighthouse found both. Homepage performance went **47 → 91-99**, with total
+blocking time **1045ms → 0ms**.
+
 - **`src/routes/**/*.remote.ts`** — remote functions. These may NOT live under
   `src/lib/server/`: Kit 3 treats any `/server/` path segment as server-only and
   rejects remote modules there.

@@ -117,7 +117,25 @@ test.describe('work filter', () => {
 
 		await expect(page).toHaveURL(/industry=FinTech/);
 		await expect(page).toHaveURL(/capability=Real-Time/);
-		await expect(page.getByText('1 project matching')).toBeVisible();
+
+		/**
+		 * Asserted on the live-region element, and asserted LAST.
+		 *
+		 * The two `toHaveURL` calls above poll, so each one passes the moment it
+		 * matches — the first went green after click one and the second after click
+		 * two, which made a URL that had never contained both parameters at once
+		 * look like one that did. The count is what actually pins the final state.
+		 *
+		 * This test was failing for a real reason: the filter chips passed an
+		 * `href` captured at render time into their click handler, so clicking a
+		 * second chip before Svelte re-rendered navigated to a URL built from the
+		 * pre-first-click state and silently dropped the first filter. The page
+		 * showed "3 projects matching" — every Real-Time project — with the
+		 * industry filter gone.
+		 */
+		// `\s+`: the count is `{filtered.length}` followed by a newline and tabs
+		// before the word, and toHaveText does not normalise whitespace for a RegExp.
+		await expect(page.locator('p.count')).toHaveText(/1\s+project matching/);
 	});
 
 	test('shows the empty state for a combination with no matches', async ({ page }) => {

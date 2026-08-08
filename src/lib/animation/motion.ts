@@ -1,5 +1,6 @@
 import type { Attachment } from 'svelte/attachments';
 import { gsap, ScrollTrigger, SplitText, trackSplit } from './gsap.ts';
+import { DUR, EASE } from './tokens.ts';
 import { MOTION_QUERIES } from './reduced-motion.ts';
 
 /**
@@ -22,21 +23,6 @@ import { MOTION_QUERIES } from './reduced-motion.ts';
  * down and rebuild the whole timeline every frame. Every attachment here takes
  * plain options captured once, and anything reactive is read through a getter.
  */
-
-/** Durations and easings mirror tokens.motion.css so JS and CSS agree. */
-const EASE = {
-	entrance: 'expo.out',
-	exit: 'quart.in',
-	emphasis: 'quart.inOut',
-	inertial: 'expo.out'
-} as const;
-
-const DUR = {
-	fast: 0.18,
-	base: 0.32,
-	deliberate: 0.56,
-	cinematic: 0.9
-} as const;
 
 export interface RevealOptions {
 	/** Stagger between children, in seconds. */

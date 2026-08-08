@@ -28,6 +28,25 @@ const ROUTES = [
  */
 const WCAG_22_AA = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
+/**
+ * Rules axe classifies as `best-practice` rather than WCAG, checked by ID
+ * because the tag filter above structurally cannot reach them.
+ *
+ * This is not hypothetical tidiness. `heading-order` was violated on /work for
+ * the entire life of the project — the page went <h1> straight to the card
+ * <h3>s, skipping <h2> — and every axe run here passed, because `heading-order`
+ * is tagged `cat.semantics, best-practice` and never `wcag2a`. Lighthouse found
+ * it, on a page this suite had already declared accessible.
+ *
+ * Heading structure is how a screen reader user navigates a page. That it falls
+ * outside the letter of WCAG does not make it cosmetic, and a suite that reports
+ * "no violations" while it is broken is worse than one that says nothing.
+ *
+ * The list is deliberately narrow — the full `best-practice` tag includes rules
+ * this site knowingly declines — so each addition is a decision, not a default.
+ */
+const BEST_PRACTICE_RULES = ['heading-order', 'landmark-unique', 'duplicate-id-aria'];
+
 test.describe('every route renders and is accessible', () => {
 	for (const route of ROUTES) {
 		test(`${route} has no axe violations`, async ({ page }) => {
@@ -51,12 +70,20 @@ test.describe('every route renders and is accessible', () => {
 			await page.evaluate(() => document.fonts.ready);
 			await page.waitForTimeout(1400);
 
-			const { violations } = await new AxeBuilder({ page }).withTags(WCAG_22_AA).analyze();
+			/**
+			 * Two passes, because `withRules` REPLACES the tag filter rather than
+			 * adding to it. Chaining both onto one builder would silently run only
+			 * the three rules below and report the entire WCAG set as clean.
+			 */
+			const wcag = await new AxeBuilder({ page }).withTags(WCAG_22_AA).analyze();
+			const practice = await new AxeBuilder({ page }).withRules(BEST_PRACTICE_RULES).analyze();
 
 			// Reported by rule id + the offending selector, so a failure says what
 			// broke and where rather than dumping the whole axe object.
 			expect(
-				violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)
+				[...wcag.violations, ...practice.violations].map(
+					(v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`
+				)
 			).toEqual([]);
 		});
 	}
