@@ -77,61 +77,61 @@ const prerendered = {
 };
 
 /**
- * The homepage, held to a performance floor calibrated on CI HARDWARE rather
- * than on a developer laptop. Everything else in `prerendered` still applies.
+ * The homepage. Everything in `prerendered` still applies except the two
+ * main-thread-timing assertions, which report instead of blocking.
  *
- * The 0.85 floor above was derived from local runs and the homepage cleared it
- * locally every time — 88, 88, 90 on macOS in fifteen runs. On GitHub's shared
- * `ubuntu-latest` runners it does not:
- *
- *   2026-08-23  0.67, 0.84, 0.84  -> median 0.84, one point under the bar, FAILED
- *   2026-08-08  passed            -> above 0.85 on the same commit range
- *
- * A gate that flips between pass and fail on runner noise is worse than a lower
- * one, because it teaches everybody to re-run CI instead of reading it. The
- * homepage is legitimately the heaviest route — it is the only one carrying the
- * WebGL hero, 322 KiB of three.js — and 0.84 on a throttled shared runner is not
- * a regression, it is that hardware measuring that page.
- *
- * 0.80 sits below the observed CI median with headroom for the noise, and well
- * above the 0.67 single-run outlier that the median already discards. Every
- * other route keeps the 0.85 bar; none of them has come close to needing this.
- *
- * Raise it back to 0.85 if the hero ever gets cheaper. Do NOT raise it because
- * a local run looks good — local is not what CI measures.
+ * It is the heaviest route by construction — the only one carrying the WebGL
+ * hero, 322 KiB of three.js — and it is also the only route whose Lighthouse
+ * timing on a shared CI runner is too unstable to gate on. The evidence and the
+ * reasoning are on the two assertions below.
  */
 const homepage = {
 	...prerendered,
-	'categories:performance': ['error', { minScore: 0.8 }],
 
 	/**
-	 * The same story as the score above, and it only became visible once the
-	 * score stopped failing first.
+	 * `warn`, NOT `error`, and that is a correction of my own earlier number.
 	 *
-	 * `prerendered` caps total-blocking-time at 300ms, measured as 0ms on every
-	 * route locally. On GitHub's runners the homepage does not clear it:
+	 * I previously set an 0.80 floor and a 900ms ceiling here and called them
+	 * "calibrated to CI hardware". They were calibrated on ONE run's values
+	 * (0.67/0.84/0.84 and 713/308.5/310), and I described 713ms as the worst
+	 * observed noise. With more samples that was simply wrong. Homepage
+	 * total-blocking-time on GitHub's shared runners, on IDENTICAL code:
 	 *
-	 *   2026-08-23  713.0, 308.5, 310  -> asserted 308.5, FAILED against 300
+	 *   run 32653879167   1649ms   260ms    876ms     spread 1389ms
+	 *   run 32655947010   1408ms  1090ms   1013ms     spread  395ms
+	 *   run 32650957077    713ms   308ms    310ms     spread  405ms
 	 *
-	 * Note WHICH value lhci asserted: 308.5, the lowest of the three, because a
-	 * maxNumericValue assertion aggregates optimistically. So even the best of
-	 * three runs blocks for longer than the ceiling allows — this is not one
-	 * unlucky sample, it is the floor of what that hardware does with this page.
+	 * 260ms to 1649ms — a 6x range on the same page. The first of those runs
+	 * PASSED the 900ms ceiling purely because lhci aggregates optimistically
+	 * (best run wins) and one sample happened to land at 260ms. That is a
+	 * coin toss wearing a gate's clothing.
 	 *
-	 * 900ms is chosen the same way `maxDiffPixels` was in visual.e2e.ts: clear
-	 * the measured noise ceiling, stay well below the smallest real signal.
+	 * The performance SCORE inherits it, being heavily TBT-weighted: best-run
+	 * scores of 85 and 68 across those same two runs.
 	 *
-	 *   worst observed CI noise   713ms
-	 *   THIS CEILING             900ms
-	 *   the real regression      1045ms  (three.js in the route node, before it
-	 *                                     was moved behind a dynamic import —
-	 *                                     see the note in `prerendered` above)
+	 * Raising the ceiling again would be the second time, and it would keep
+	 * being wrong, because the problem is variance rather than level. So these
+	 * two report and do not block.
 	 *
-	 * So it still fails on the one regression this project has actually had,
-	 * while not flipping on runner noise. Every other route keeps the 300ms
-	 * ceiling, and all four of them measure 0ms.
+	 * NOTHING IS ACTUALLY UNGUARDED BY THIS. The failure mode TBT was protecting
+	 * against is a heavy module landing on the critical path, and
+	 * `resource-summary:script:size` catches that deterministically at 400 KiB —
+	 * its own note above says that ceiling "would have caught the two real
+	 * regressions this project has had (three.js in the route node, GSAP in the
+	 * layout)". Bytes do not fluctuate with runner contention. Also still hard
+	 * errors on this route: accessibility, SEO and best-practices at 1.0, CLS at
+	 * 0.01, and the 600 KiB total transfer budget.
+	 *
+	 * Worth noting what is NOT noisy in the same reports: LCP measured 3.19s,
+	 * 3.19s, 3.20s, 3.19s, 3.19s, 3.19s across all six runs. The instability is
+	 * specific to main-thread timing on a contended shared runner.
+	 *
+	 * Make these errors again once the homepage runs on hardware that gives a
+	 * repeatable number, or once someone finds the cause of the 6x swing.
 	 */
-	'total-blocking-time': ['error', { maxNumericValue: 900 }]
+	'categories:performance': ['warn', { minScore: 0.85 }],
+	// Same reasoning as the score above; see that comment for the measurements.
+	'total-blocking-time': ['warn', { maxNumericValue: 900 }]
 };
 
 /**
