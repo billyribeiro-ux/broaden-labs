@@ -64,16 +64,61 @@
 		const detected = detectTier(forced ? { force: forced } : {});
 		tier = detected;
 
+		let cancel: (() => void) | undefined;
+
 		if (detected !== 'fallback') {
 			// Only now is three.js worth fetching. This is the ONE reference to the
 			// scene module anywhere in the app, and it is what makes it a chunk.
-			void import('./ApertureScene.svelte').then((module) => {
-				if (!disposed) Scene = module.default;
-			});
+			const load = () => {
+				void import('./ApertureScene.svelte').then((module) => {
+					if (!disposed) Scene = module.default;
+				});
+			};
+
+			/**
+			 * Deferred to idle rather than started during hydration, because this is
+			 * the single most expensive thing the homepage does and it is decoration.
+			 *
+			 * `detectTier` returns `medium` for any viewport under 1024px, so a phone
+			 * gets a scene — and Lighthouse's mobile emulation is 390x844, which is
+			 * why the homepage is the ONLY route with non-zero total-blocking-time.
+			 * Measured there: 323 KiB of JavaScript over 32 requests, of which one
+			 * 188 KiB chunk is three.js. Every prerendered route without it reports
+			 * 0ms TBT.
+			 *
+			 * The import is already lazy, so the bytes were never on the critical
+			 * path — but kicking it off inside the attachment meant the parse and
+			 * execute landed while the main thread was still hydrating. Waiting for
+			 * idle keeps identical behaviour and identical bytes, and stops the
+			 * scene competing with interactivity to get there.
+			 *
+			 * `timeout` is a backstop for a page that never goes idle; the callback
+			 * normally fires within a frame or two of hydration finishing. Safari
+			 * still ships no requestIdleCallback, hence the setTimeout branch.
+			 *
+			 * The method is read off `window` into a local BEFORE being tested.
+			 * `'requestIdleCallback' in window` would narrow the else branch to
+			 * `never` — lib.dom declares it as always present — so the Safari
+			 * fallback would stop type-checking. Widening the reference to
+			 * `| undefined` keeps both branches reachable to the compiler as well as
+			 * to Safari.
+			 */
+			const ric = window.requestIdleCallback as typeof window.requestIdleCallback | undefined;
+
+			if (ric) {
+				const handle = ric(load, { timeout: 1500 });
+				cancel = () => window.cancelIdleCallback(handle);
+			} else {
+				const handle = window.setTimeout(load, 200);
+				cancel = () => window.clearTimeout(handle);
+			}
 		}
 
 		return () => {
 			disposed = true;
+			// Cancelling matters on a fast navigation away: without it the callback
+			// still fires and pulls 188 KiB for a component that is already gone.
+			cancel?.();
 			Scene = null;
 		};
 	}
