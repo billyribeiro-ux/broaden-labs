@@ -140,15 +140,28 @@ jobs:
     name: Visual regression (linux baselines)
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # A real gate. Linux baselines live in `src/__visual/linux/` and were
-    # generated in THIS image (mcr.microsoft.com/playwright:v1.62.1-noble), then
-    # verified with three consecutive clean runs at 14/14 before being committed.
+    # A real gate. Linux baselines live in `src/__visual/linux/`.
     #
     # Baselines must be rendered on the platform that compares them: font
     # rasterisation and compositing differ enough between macOS and Linux that a
     # cross-platform diff is thousands of antialiasing pixels and says nothing
     # about whether the design changed. `snapshotPathTemplate` keys them by
     # {platform} so both sets coexist.
+    #
+    # "The platform" means THIS RUNNER, not merely the same container image.
+    # `mobile-menu.png` was generated locally in
+    # mcr.microsoft.com/playwright:v1.62.1-noble and verified at 14/14 there, and
+    # still failed here with an identical `1737 pixels are different` on
+    # 2026-08-08 and again on 2026-08-23 — the same count across three weeks and
+    # a full toolchain upgrade, so deterministic rather than flaky. Comparing the
+    # -actual against the -expected showed two renders identical to the eye:
+    # 1737 of 329,160 pixels, 0.53%, sub-pixel hairline and antialiasing rounding.
+    # A local container on Apple Silicon emulating amd64 does not rasterise
+    # identically to a native amd64 runner.
+    #
+    # So: regenerate baselines FROM A RUN OF THIS JOB. Push the change, let the
+    # visual job fail, download the `visual-diff-linux` artifact, check the
+    # -actual is correct, and commit that file. Do not regenerate them locally.
 
     steps:
       - uses: actions/checkout@v7
