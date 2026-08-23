@@ -19,12 +19,28 @@ framework.
 
 ## Prerequisites
 
-- **Node 24.19.0, exactly** — the newest release on the active LTS line
-  ("Krypton"; Node 26 does not become LTS until 2026-10-28). Kit 3 itself only
-  requires `>=22.17`, but `engines` pins the exact version and `.npmrc` sets
-  `engine-strict=true`, so any other runtime fails `pnpm install` immediately
-  rather than breaking somewhere subtler later. CI reads the same field via
-  `node-version-file: package.json`, so it is pinned in exactly one place.
+- **Node 24.19.0** — the newest release on the active LTS line ("Krypton"; Node
+  26 does not become LTS until 2026-10-28). Kit 3 itself only requires
+  `>=22.17`.
+
+  The version is written in TWO files, and that is deliberate rather than
+  duplication, because two consumers accept different precision:
+
+  - **`.nvmrc` → `24.19.0`.** The exact version. `nvm use` picks it up, and all
+    five CI jobs read it via `node-version-file: .nvmrc`, so CI runs 24.19.0
+    and nothing else.
+  - **`package.json` `engines` → `24.x`.** Vercel reads this one and **only
+    accepts a major**. A `major.minor.patch` value there is not an error, it is
+    silently IGNORED — the production build log said so in as many words:
+    _"Detected `engines: { node: 24.19.0 }` … but only major Node.js Version can
+    be selected."_ The pin looked precise and was doing nothing. `24.x` is a
+    value Vercel actually honours, and `engine-strict=true` in `.npmrc` still
+    makes a non-24 runtime fail `pnpm install` immediately.
+
+  The deployed FUNCTION runtime is a third thing again, pinned independently as
+  `nodejs24.x` in `vite.config.ts` — see the note there for why it is passed
+  explicitly rather than inferred from the build container.
+
 - **pnpm** — npm, yarn and bun are not supported here
 - **PostgreSQL** running locally
 
@@ -65,7 +81,9 @@ build so the score means the same thing locally and in CI.
 `.github/workflows/ci.yml` — five jobs: types/lint/unit (against a real
 Postgres 16 service), end-to-end across seven Playwright projects, visual
 regression, Lighthouse, and a dependency audit. The pnpm version is read from
-`packageManager` and the Node version from `engines`, so neither is pinned twice.
+`packageManager`, so pnpm is pinned in exactly one place. The Node version comes
+from `.nvmrc` rather than `engines` — see Prerequisites for why those two files
+hold different precision.
 
 The `visual` job is a real gate. Its Linux baselines live in
 `src/__visual/linux/`, were generated in the same container image CI uses, and
