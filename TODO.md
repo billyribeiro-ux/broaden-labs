@@ -76,6 +76,42 @@ that found none. Counsel review is still advisable before relying on them.
 
 ## Known, measured, not yet explained
 
+### Homepage Lighthouse timing swings 6x on GitHub's runners
+
+**Status:** measured across three CI runs, cause not identified. The two
+main-thread assertions for `/` are `warn` rather than `error` because of it.
+
+Total-blocking-time for the homepage, on identical code, same workflow, same
+runner image:
+
+| run         | values                 | spread |
+| ----------- | ---------------------- | ------ |
+| 32650957077 | 713ms, 308ms, 310ms    | 405ms  |
+| 32653879167 | 1649ms, 260ms, 876ms   | 1389ms |
+| 32655947010 | 1408ms, 1090ms, 1013ms | 395ms  |
+
+260ms to 1649ms. lhci aggregates optimistically, so run 32653879167 passed a
+900ms ceiling on the strength of its single 260ms sample — a coin toss, not a
+gate. The performance score inherits it: best-run scores of 85 and 68 on
+consecutive runs.
+
+**What is NOT noisy in the same reports:** LCP is 3.19–3.20s across all six
+runs, CLS is 0.000, and the transfer sizes are byte-identical. So this is
+specific to main-thread timing, which points at runner contention rather than
+anything in the page.
+
+**Not explained:** why the JS bootup component alone ranges 729ms to 3013ms.
+
+**Meanwhile:** the deterministic budgets still block — `resource-summary:script`
+at 400 KiB catches the "heavy module on the critical path" failure mode that TBT
+was standing in for, and it cannot flake. Accessibility, SEO, best-practices and
+CLS remain hard errors on this route, as do the strict 0.85 / 300ms gates on
+every other route.
+
+**Next step:** if this needs to become a gate again, run Lighthouse on a
+dedicated runner, or sample enough runs to assert on a percentile rather than
+lhci's best-of-three.
+
 ### `/start-a-project` has a ~960ms main-thread task on a throttled connection
 
 **Status:** precisely characterised, cause not identified, **and no longer
