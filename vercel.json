@@ -1,5 +1,10 @@
 {
 	"$schema": "https://openapi.vercel.sh/vercel.json",
+	"build": {
+		"env": {
+			"BROADEN_CONTENT_READY": "1"
+		}
+	},
 	"headers": [
 		{
 			"source": "/(.*)",
