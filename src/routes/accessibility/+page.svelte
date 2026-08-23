@@ -64,7 +64,8 @@
 			element, focus trapped and returned correctly by the mobile menu, and form errors announced.
 		</li>
 		<li>
-			Layout stability measured at 390, 768, 1440 and 2560 pixels, including on a slow connection.
+			Layout stability measured at twelve viewport widths from 320 to 2560 pixels, including on a
+			slow connection.
 		</li>
 	</ul>
 

@@ -157,7 +157,7 @@ From [Google's Core Web Vitals documentation][cwv] (last updated 2025-12-10) and
 | ------ | ------- | ------------------------------------------------------------------------------------------------ |
 | LCP    | < 2.5s  | Hero text is server-rendered; the two latin webfont subsets are preloaded (118 KB total)         |
 | INP    | < 200ms | No blocking work on interaction; three.js is dynamically imported and never on the critical path |
-| CLS    | **0**   | Measured at 390/768/1440/2560 in a real preview build — see `shell.e2e.ts`                       |
+| CLS    | **0**   | Measured at all twelve widths in `breakpoints.ts` in a real preview build — see `shell.e2e.ts`   |
 
 Google's own caveat, worth repeating: good scores "don't guarantee top rankings",
 and chasing a perfect score "may not be the best use of your time". CLS is held
