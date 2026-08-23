@@ -107,6 +107,51 @@ test.describe('responsive layout', () => {
 					`${route} at ${width}px overflows by ${scrollWidth - clientWidth}px` +
 						(offenders.length ? `\n  ${offenders.join('\n  ')}` : '')
 				).toBeLessThanOrEqual(clientWidth + 1);
+
+				/**
+				 * The other half of the problem, and the half that shipped.
+				 *
+				 * Overflow catches content that is too WIDE. It is structurally blind
+				 * to content that is too NARROW, because a squeezed column never
+				 * widens the document — so all 468 renders above passed while the
+				 * named grid spans were collapsing to a single 4-column track: 71px
+				 * wide at a 390px viewport, body copy wrapping at two words per line,
+				 * 13 such elements on the homepage, and the page running 18,118px
+				 * tall. `grid.css` declared those spans only inside the 48rem and
+				 * 64rem queries, so below 768px they fell through to auto-placement.
+				 *
+				 * Below the 48rem breakpoint the design system's own rule is that
+				 * every named span is full width, so anything materially narrower
+				 * than its container is the bug rather than a judgement call. The
+				 * threshold is 80% of the content box: generous enough that padding
+				 * and borders never trip it, tight enough that a single track of a
+				 * 4-column grid (25%) cannot hide.
+				 */
+				if (width < 768) {
+					const narrow = await page.evaluate(() => {
+						const found: string[] = [];
+						for (const el of document.querySelectorAll('[class*="span-"]')) {
+							const parent = el.parentElement;
+							if (!parent) continue;
+							const own = el.getBoundingClientRect().width;
+							const avail = parent.getBoundingClientRect().width;
+							if (avail === 0 || own === 0) continue;
+							if (own < avail * 0.8) {
+								const cls =
+									typeof el.className === 'string' ? el.className.split(/\s+/)[0] : '(unknown)';
+								found.push(
+									`${el.tagName.toLowerCase()}.${cls} is ${Math.round(own)}px of ${Math.round(avail)}px available (${Math.round((own / avail) * 100)}%)`
+								);
+							}
+						}
+						return found;
+					});
+
+					expect(
+						narrow,
+						`${route} at ${width}px has named grid spans collapsed below full width:\n  ${narrow.join('\n  ')}`
+					).toEqual([]);
+				}
 			}
 		});
 	}
