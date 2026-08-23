@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 /**
  * WebGL capability tiers and safety. Brief §74, §75, §76, §83.
@@ -11,10 +11,57 @@ import { test, expect } from '@playwright/test';
 
 const TIERS = ['rich', 'medium', 'still', 'fallback'] as const;
 
+/**
+ * Skips a test when the browser under it cannot create a WebGL2 context.
+ *
+ * `?tier=` forces a tier, and `detectTier` honours a forced tier BEFORE probing
+ * for WebGL (capability.svelte.ts:46). That is correct for the app — the
+ * override exists so the fallback can be inspected by hand — but it means
+ * forcing `rich` on a browser with no WebGL asks for a canvas that cannot
+ * exist. Threlte then fails to acquire a context and the hero is torn down, so
+ * `.stage` is missing and every assertion below it times out.
+ *
+ * That is exactly what happens to Firefox on GitHub's runners: they have no GPU,
+ * and unlike Chromium — which falls back to SwiftShader, verified as
+ * "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device ...))" — Firefox ships no
+ * software rasteriser, so `getContext('webgl2')` returns null. Six tests failed
+ * this way on 2026-08-08 and again on 2026-08-23, always and only in firefox.
+ *
+ * Asserting the three GPU tiers there proves nothing about the product: a real
+ * visitor on that browser would be DETECTED as `fallback` and never reach this
+ * code path. So the tests skip, honestly and with a reason, rather than being
+ * deleted or the whole project being excluded.
+ *
+ * Probed at runtime, deliberately, rather than keyed off `browserName`. If a
+ * runner ever gains a GPU or Firefox ships llvmpipe by default, these start
+ * running again on their own instead of staying silently skipped. The probe
+ * mirrors `hasWebGL()` in capability.svelte.ts — webgl2, and released
+ * immediately, because a probe context still occupies one of the browser's
+ * limited context slots.
+ */
+async function skipWithoutWebGL(page: Page) {
+	const available = await page.evaluate(() => {
+		try {
+			const canvas = document.createElement('canvas');
+			const gl = canvas.getContext('webgl2');
+			if (!gl) return false;
+			gl.getExtension('WEBGL_lose_context')?.loseContext();
+			return true;
+		} catch {
+			return false;
+		}
+	});
+
+	test.skip(!available, 'no WebGL2 context in this browser; a forced GPU tier cannot render');
+}
+
 test.describe('capability tiers', () => {
 	for (const tier of TIERS) {
 		test(`${tier}: renders, stays interactive, and logs nothing`, async ({ page }) => {
 			await page.goto(`/?tier=${tier}`);
+			// `fallback` renders the SVG and needs no GPU, so it is exercised
+			// everywhere. The other three require a context this browser may not have.
+			if (tier !== 'fallback') await skipWithoutWebGL(page);
 			await page.evaluate(() => document.fonts.ready);
 			await page.waitForTimeout(2200);
 
@@ -121,6 +168,7 @@ test.describe('the canvas carries no information', () => {
 	 */
 	test('the stage is inert to assistive technology', async ({ page }) => {
 		await page.goto('/?tier=rich');
+		await skipWithoutWebGL(page);
 		await page.waitForTimeout(1500);
 
 		// Anything the scene draws is unreachable by a screen reader, and nothing
@@ -154,6 +202,7 @@ test.describe('the canvas carries no information', () => {
 		const withoutScene = await heroText();
 
 		await page.goto('/?tier=rich');
+		await skipWithoutWebGL(page);
 		await page.evaluate(() => document.fonts.ready);
 		await page.waitForTimeout(1500);
 		const withScene = await heroText();
@@ -172,6 +221,7 @@ test.describe('scene lifecycle', () => {
 	 */
 	test('ten navigations away and back leave the scene working', async ({ page }) => {
 		await page.goto('/?tier=rich');
+		await skipWithoutWebGL(page);
 		await page.waitForTimeout(1200);
 		await expect(page.locator('.stage canvas')).toHaveCount(1);
 
