@@ -57,8 +57,28 @@
 	 * Each collapses to full width on mobile, because a 5-of-12 column at 320px
 	 * is 100px wide and unreadable. The pattern only asserts itself once there
 	 * are enough columns for it to mean something.
+	 *
+	 * THE MOBILE RULE BELOW IS LOAD-BEARING, and its absence was a real defect.
+	 * The paragraph above described the intent, but only `.span-full` carried a
+	 * `grid-column`; every other name was declared solely inside the 48rem and
+	 * 64rem queries. Under those breakpoints they fell through to auto-placement
+	 * in the 4-column mobile grid — one track, measured at 71px wide on a 390px
+	 * viewport, with 13 such elements on the homepage alone. Body copy wrapped at
+	 * roughly two words per line and the page ran 18,118px tall.
+	 *
+	 * It is invisible to an overflow check by construction: a column that is far
+	 * too NARROW never widens the document, so `responsive.e2e.ts` passed all 468
+	 * renders while the page was unreadable. `responsive.e2e.ts` now also asserts
+	 * a minimum content width, which is what actually catches this class of bug.
 	 */
-	.span-full {
+	.span-full,
+	.span-5-7,
+	.span-7-5,
+	.span-4-8,
+	.span-8-4,
+	.span-offset,
+	.span-half,
+	.span-third {
 		grid-column: 1 / -1;
 	}
 
