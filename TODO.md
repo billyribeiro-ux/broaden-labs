@@ -25,6 +25,36 @@ is now fixed by version floors in `pnpm-workspace.yaml`. Both `pnpm audit` and
 
 **Blocks:** nothing. Revisit if extract-zip ever ships 2.0.2.
 
+### The visual baselines do not cover scroll-revealed content nested inside a card
+
+**Not user-facing, and pre-existing** — recorded because it is a blind spot in a
+gate, and because the next person to see it will otherwise think it is a bug in
+the page.
+
+`ServiceCard.svelte` renders `ul.capabilities > li` chips ("Product
+architecture", "Web applications", …). In every committed baseline, on BOTH
+platforms, those chips occupy their layout box and paint nothing.
+
+**Measured, not inferred.** `getComputedStyle` on `.capabilities li` after load
+reports `opacity: 0`, identically with and without `visual.stylesheet.css`
+injected — so the harness stylesheet is not the cause. The chips are revealed on
+scroll, they sit below the fold, and a `fullPage: true` capture never scrolls, so
+their ScrollTrigger never fires. Scroll to them in a real browser and they
+render correctly.
+
+The mechanism is that `+page.svelte` attaches `reveal({ children: 'li' })` to
+`ul.cards`, which matches every descendant `li` — including the chips nested
+inside each card — not just the cards themselves. `visual.stylesheet.css` pins
+`.cards > li` back to `opacity: 1`, and the child combinator means the nested
+chips are not covered.
+
+**What it costs:** a change to those chips cannot fail the visual suite.
+
+**Fixing it** means either narrowing the reveal to `:scope > li` or adding the
+nested selectors to the pin list. Both change animation behaviour or every
+baseline on two platforms, so neither belongs in a change that was about the
+mobile grid. Left deliberately for its own pass.
+
 ### `layout-shift` is a Chromium-only API
 
 **Not a gap so much as a correction, recorded so it is not "fixed" back.**
