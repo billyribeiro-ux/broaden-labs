@@ -8,10 +8,142 @@ allowBuilds:
 # typescript-eslint peers >=4.8.4 <6.1.0, so any resolution to 7 breaks
 # svelte-check, eslint and Kit's peer range at once. pnpm 11 no longer reads
 # `pnpm.overrides` from package.json — this file is the only place it applies.
+#
+# Re-verified 2026-08-23 against the registry: typescript latest=7.0.2,
+# newest 6.x stable=6.0.3, and all three peer ranges above are unchanged. 6.0.3
+# is therefore the newest TypeScript this toolchain can actually resolve, not a
+# version held back out of caution.
 overrides:
   typescript: 6.0.3
+
+  # Transitive security advisories. `pnpm audit --audit-level=high` exited 1 with
+  # 41 findings (18 high, 1 critical) BEFORE any of the direct-dependency work in
+  # this change — verified by auditing a clean HEAD checkout, which reported the
+  # identical 5/17/18/1 split. Every direct dependency is already at its newest
+  # publishable version, so the only lever left is pinning the transitive floors.
+  #
+  # Caret, NOT `>=`, and the difference is load-bearing. An open `>=` bound
+  # resolves to the newest release, which for several of these crosses majors the
+  # consuming CLI was never tested against — `undici` 5→8, `uuid` 11→14,
+  # `path-to-regexp` 6→8, `js-yaml` 4→5. Caret lifts the floor to the patched
+  # version and stays inside its major. `tar` takes ^7.5.21 because two separate
+  # advisories apply and the higher floor wins.
+  #
+  # The entries in THIS block are unscoped, and each one is a `high` or
+  # `critical` finding whose vulnerable copies all sit under dev-only CLIs.
+  # Anything below that severity is handled by a scoped key further down, for a
+  # reason paid for once: a blanket `ajv: ^8.18.0` here replaced the ajv 6 that
+  # eslint@10.9.0 loads `ajv/lib/refs/json-schema-draft-04.json` from, and
+  # `pnpm lint` exited 2 until it was removed. Breadth is the hazard, not the
+  # upgrade.
+  js-yaml: ^4.1.2
+  minimatch: ^10.2.1
+  nanoid: ^3.3.18
+  path-to-regexp: ^6.3.0
+  tar: ^7.5.21
+  tmp: ^0.2.4
+  # ^6.27.0, not ^5: three separate high advisories against undici name >=6.24.0
+  # and >=6.27.0 as patched, and no 5.x release satisfies them. A 5.29.0 pin
+  # cleared the older advisory and left all three of these standing, so this one
+  # genuinely has to cross the major. Dev-only reach: vercel CLI internals
+  # (@vercel/blob, @vercel/node); nothing in `src/` imports undici.
+  undici: ^6.27.0
+
+  # ── Scoped overrides ──────────────────────────────────────────────────────
+  #
+  # `parent>child` restricts the override to one dependency path instead of the
+  # whole tree. That distinction is the fix for the ESLint breakage described
+  # above: a global `ajv: ^8.18.0` replaced the ajv 6 that eslint@10.9.0 loads
+  # `json-schema-draft-04.json` from and broke `pnpm lint` outright, while the
+  # package that actually needs patching is @vercel/static-config's ajv 8.6.3.
+  # Scoping fixes that one and leaves ESLint's copy untouched.
+  #
+  # Every one of these is a `moderate` or `low` finding that the
+  # `--audit-level=high` gate would never have caught. They are fixed anyway,
+  # because a scoped override carries almost none of the blast radius that made
+  # the global ajv attempt a bad trade.
+  #
+  # The key names the IMMEDIATE parent, not the top-level package. `vercel>ajv`
+  # silently matches NOTHING — ajv hangs off @vercel/static-config, so that key
+  # resolved, installed and changed no version, and the advisory survived a clean
+  # install looking fixed. Each parent below was read out of the advisory's own
+  # dependency path rather than guessed from the package that owns the CLI.
+  '@vercel/static-config>ajv': ^8.18.0
+  '@vercel/fun>@tootallnate/once': ^2.0.1
+  '@lhci/cli>uuid': ^11.1.1
+
+  # smol-toml is deliberately UNSCOPED where the others are scoped. It reaches
+  # the tree through three separate parents (`vercel`, `@vercel/rust`,
+  # `@vercel/python-analysis`), so scoping means chasing each one and re-running
+  # the audit to discover the next. `pnpm why smol-toml` shows the vercel CLI is
+  # its only consumer in this workspace, so an unscoped bound has the same blast
+  # radius as three scoped ones and cannot drift when vercel reshuffles.
+  smol-toml: ^1.6.1
+
+  # esbuild 0.18.20 arrives through the DEPRECATED @esbuild-kit shims, which pnpm
+  # already warns about on install. The advisory names >=0.24.3, a version that
+  # was never published — the 0.24 line stops at 0.24.2 and the fix shipped in
+  # 0.25 — so the floor here is ^0.25.0, chosen from the registry rather than
+  # copied from the advisory text.
+  '@esbuild-kit/core-utils>esbuild': ^0.25.0
+  #
+  # One is deliberately absent because no override can fix it:
+  #
+  # `extract-zip` — its advisory names >=2.0.2 as patched, but 2.0.1 is the
+  # newest version ever published, so the fix does not exist on the registry.
+  # Reaches the tree only via @lhci/cli > lighthouse > puppeteer-core, and is
+  # suppressed by the single `auditConfig.ignoreGhsas` entry at the bottom of
+  # this file. Recorded in TODO.md.
+  #
+  # Net effect of this block: `pnpm audit` went from 41 findings (18 high, 1
+  # critical, exit 1) to 1 — the suppressed extract-zip advisory — with both
+  # `pnpm audit` and `pnpm audit --audit-level=high` exiting 0.
 minimumReleaseAgeExclude:
-  - '@sveltejs/adapter-vercel@7.0.0-next.6'
-  - '@sveltejs/kit@3.0.0-next.16'
-  - '@sveltejs/load-config@0.2.2'
-  - svelte-check@4.7.5
+  - '@sveltejs/adapter-vercel@7.0.0-next.8'
+  - '@sveltejs/kit@3.0.0-next.25'
+  - '@sveltejs/load-config@0.2.3'
+  - svelte-check@4.7.6
+  - '@vercel/backends@2.0.0'
+  - '@vercel/build-utils@14.4.0'
+  - '@vercel/cervel@0.1.49'
+  - '@vercel/container@2.0.0'
+  - '@vercel/elysia@2.0.0'
+  - '@vercel/express@2.0.0'
+  - '@vercel/fastify@2.0.0'
+  - '@vercel/gatsby-plugin-vercel-builder@2.2.44'
+  - '@vercel/go@5.0.0'
+  - '@vercel/h3@2.0.0'
+  - '@vercel/hono@2.0.0'
+  - '@vercel/hydrogen@3.0.0'
+  - '@vercel/koa@2.0.0'
+  - '@vercel/nestjs@2.0.0'
+  - '@vercel/next@6.0.0'
+  - '@vercel/node@7.0.0'
+  - '@vercel/python@8.0.0'
+  - '@vercel/redwood@4.0.0'
+  - '@vercel/remix-builder@7.0.0'
+  - '@vercel/ruby@4.0.0'
+  - '@vercel/rust@3.0.0'
+  - '@vercel/static-build@4.0.0'
+  - '@vercel/vc-native-darwin-arm64@59.5.0'
+  - '@vercel/vc-native-darwin-x64@59.5.0'
+  - '@vercel/vc-native-linux-arm64@59.5.0'
+  - '@vercel/vc-native-linux-x64@59.5.0'
+  - vercel@59.5.0
+
+# GHSA-jmr9-qjv8-65gv — extract-zip symlink path traversal, `high`.
+#
+# Ignored because it is UNFIXABLE, not because it is unimportant. The advisory
+# names >=2.0.2 as patched; 2.0.1 is the newest version ever published, so there
+# is no release to upgrade to. Verified against the registry, not assumed.
+#
+# Reach: @lhci/cli > lighthouse > puppeteer-core > @puppeteer/browsers, which
+# runs only in the Lighthouse CI job and only unzips Chromium downloaded from
+# Google's own endpoint. It is not in the application dependency graph and never
+# reaches the built site.
+#
+# This is the ONLY suppression. Every other advisory at `high` or above is fixed
+# by the overrides above. Revisit if extract-zip ever ships 2.0.2.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-jmr9-qjv8-65gv

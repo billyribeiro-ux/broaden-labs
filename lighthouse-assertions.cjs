@@ -80,17 +80,33 @@ const prerendered = {
  * `/start-a-project` is held to a LOWER performance bar than everything else,
  * and that is recorded here rather than hidden by simply not asserting it.
  *
- * Measured 68 and 69, against 91-95 for the prerendered routes. The cause is a
- * single ~1.3s main-thread task that is NOT JavaScript execution — a V8 CPU
- * profile attributes 1376ms to `(program)` and 23ms to script — and which only
- * reproduces when this route is the first request to a cold preview server. It
- * is the only route that is not prerendered.
+ * Originally measured 68 and 69 against 91-95 for the prerendered routes, caused
+ * by a single ~1.3s main-thread task that was NOT JavaScript execution — a V8
+ * CPU profile attributed 1376ms to `(program)` and 23ms to script. It is the
+ * only route that is not prerendered.
  *
- * It is written down in TODO.md under "Known, measured, not yet fixed" with the
- * next diagnostic step. The floor here is set below the measured value so the
- * gate is honest today, and it should be raised to match the others once the
- * cause is understood. Deleting the assertion instead would let the page get
- * worse silently.
+ * IT NO LONGER REPRODUCES, and the floor is still 0.6 on purpose.
+ *
+ * Six clean `lhci autorun` runs on two dates now show this route at performance
+ * 92 with total-blocking-time 0ms — identical to the prerendered routes:
+ *
+ *   2026-08-08   3 runs   perf 92, TBT 0ms
+ *   2026-08-23   3 runs   perf 92, TBT 0ms
+ *
+ * (A seventh run showed 526ms on the HOMEPAGE, not this route. It was an
+ * artifact of other work running concurrently against a 4x-CPU-throttled
+ * measurement; a re-run on an idle machine gave 0ms across all fifteen runs.)
+ *
+ * The floor is NOT raised to match the others, because "stopped reproducing" is
+ * not "understood". Two records disagree about the trigger — this comment
+ * originally blamed a cold preview server, TODO.md later established that the
+ * real variable was network throttling and the cold-server theory was wrong —
+ * and lhci requests this route LAST, so a first-request-to-a-cold-server
+ * condition would not be exercised here either way. Raising the bar on a cause
+ * nobody has pinned down would convert an unexplained absence into a flaky gate.
+ *
+ * Revisit when the cause is actually identified. TODO.md carries the next
+ * diagnostic step. Deleting the assertion would let the page get worse silently.
  */
 const dynamicRoute = {
 	...universal,

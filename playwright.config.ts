@@ -60,6 +60,15 @@ const PREFERENCE_SPECS = '**/*.reduced.e2e.{ts,js}';
 const VISUAL_SPECS = '**/visual.e2e.{ts,js}';
 
 /**
+ * The responsive-geometry sweep. Runs in chromium, firefox and webkit — box
+ * geometry is engine-independent, and intrinsic grid/flex sizing is where
+ * engines actually diverge, so restricting it to one would be blind to the most
+ * likely responsive bug. Excluded only from `mobile` (a fixed device descriptor
+ * whose viewport these tests override anyway) and `no-js`.
+ */
+const RESPONSIVE_SPECS = '**/responsive.e2e.{ts,js}';
+
+/**
  * The E2E form specs write to the database too, so they get the same guard as
  * the Vitest suite. Thrown at config load, which fails the run before a browser
  * or a server starts. See src/lib/server/testing/assert-local-database.ts.
@@ -123,10 +132,12 @@ export default defineConfig({
 
 		// Playwright ships no descriptor at several of the widths brief §82
 		// requires (820, 1024, 1280, 1440, 1728, 1920, 2560), so responsive specs
-		// set an explicit viewport rather than pretending a device matches.
+		// set an explicit viewport rather than pretending a device matches. That
+		// width list is now enumerated and asserted in responsive.e2e.ts; this
+		// project stays on the iPhone 14 descriptor for touch and UA behaviour.
 		{
 			name: 'mobile',
-			testIgnore: [DB_WRITING_SPECS, PREFERENCE_SPECS, VISUAL_SPECS],
+			testIgnore: [DB_WRITING_SPECS, PREFERENCE_SPECS, VISUAL_SPECS, RESPONSIVE_SPECS],
 			use: { ...devices['iPhone 14'] }
 		},
 
@@ -137,7 +148,7 @@ export default defineConfig({
 		{
 			name: 'no-js',
 			testMatch: '**/*.nojs.e2e.{ts,js}',
-			testIgnore: [DB_WRITING_SPECS, PREFERENCE_SPECS, VISUAL_SPECS],
+			testIgnore: [DB_WRITING_SPECS, PREFERENCE_SPECS, VISUAL_SPECS, RESPONSIVE_SPECS],
 			use: { ...devices['Desktop Chrome'], javaScriptEnabled: false }
 		},
 

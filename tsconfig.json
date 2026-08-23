@@ -4,9 +4,22 @@
 		"rewriteRelativeImportExtensions": true,
 		"sourceMap": true,
 
-		// $app/tsconfig (node_modules/$app/tsconfig.json) sets paths, rootDirs, types,
-		// lib, verbatimModuleSyntax and isolatedModules — and none of the strictness
-		// below. Every flag here is ours to declare. Brief §5.
+		// Mirrors the `imports` field in package.json. Kit used to generate these
+		// into $app/tsconfig for us; as of @sveltejs/kit@3.0.0-next.25 that file
+		// ships `"paths": {}` and the subpath imports stop resolving — 73 "Cannot
+		// find module '#lib/...'" errors, verified as 0 on next.16 and 73 on
+		// next.25 with nothing else changed. Declared here on purpose: this
+		// repository owns the `imports` field, so it owns the type-side mapping
+		// rather than depending on a generator that has already dropped it once.
+		"paths": {
+			"#lib": ["./src/lib/index.ts"],
+			"#lib/*": ["./src/lib/*"]
+		},
+
+		// $app/tsconfig (node_modules/$app/tsconfig.json) sets rootDirs, types, lib,
+		// verbatimModuleSyntax and isolatedModules — and none of the strictness
+		// below. It also sets `paths`, but to an empty object as of next.25, which
+		// is why ours is declared above rather than inherited. Brief §5.
 		"strict": true,
 		"noImplicitAny": true,
 		"strictNullChecks": true,

@@ -4,15 +4,27 @@ The Broaden Labs website. SvelteKit 3 preview, Svelte 5, PostgreSQL, no CSS
 framework.
 
 > **This targets a SvelteKit 3 PRERELEASE.** `@sveltejs/kit` is pinned to an
-> exact `3.0.0-next.16` and must stay pinned — unmerged branches upstream
+> exact `3.0.0-next.25` and must stay pinned — unmerged branches upstream
 > suggest the remote-form API may still rename `submitted`, `withOverride` and
 > `updates` before 3.0.0 final. Read `node_modules/@sveltejs/kit/types/index.d.ts`
 > for API truth: **svelte.dev and the Svelte MCP still serve SvelteKit 2 docs**,
 > and several of their examples throw in Kit 3.
+>
+> Two API moves landed between `next.16` and `next.25`, both found by reading
+> that file rather than any changelog. `Handle` and `HandleServerError` are no
+> longer exported from the package root — they live in `@sveltejs/kit/hooks`.
+> And `handleError` no longer receives `status`/`message` as arguments; it now
+> takes a `kind`-discriminated `CaughtError` whose status and message live on
+> the error itself for every kind except `unknown`.
 
 ## Prerequisites
 
-- **Node ≥ 22.17** (Kit 3 requires it)
+- **Node 24.19.0, exactly** — the newest release on the active LTS line
+  ("Krypton"; Node 26 does not become LTS until 2026-10-28). Kit 3 itself only
+  requires `>=22.17`, but `engines` pins the exact version and `.npmrc` sets
+  `engine-strict=true`, so any other runtime fails `pnpm install` immediately
+  rather than breaking somewhere subtler later. CI reads the same field via
+  `node-version-file: package.json`, so it is pinned in exactly one place.
 - **pnpm** — npm, yarn and bun are not supported here
 - **PostgreSQL** running locally
 
@@ -55,8 +67,16 @@ Postgres 16 service), end-to-end across seven Playwright projects, visual
 regression, Lighthouse, and a dependency audit. The pnpm version is read from
 `packageManager` and the Node version from `engines`, so neither is pinned twice.
 
-The `visual` job runs with `continue-on-error` until Linux baselines exist —
-see "Evidence gaps" in `TODO.md` for exactly why and how to close it.
+The `visual` job is a real gate. Its Linux baselines live in
+`src/__visual/linux/`, were generated in the same container image CI uses, and
+`continue-on-error` is gone — see "Closed" in `TODO.md`.
+
+Responsive geometry is its own gate. `src/routes/responsive.e2e.ts` renders every
+route at all twelve widths in `src/lib/testing/breakpoints.ts` — brief §82's
+seven enterprise widths plus five narrow ones — and fails on any horizontal
+overflow. Unlike the visual suite it runs in **all three engines**: a screenshot
+baseline cannot cross engines, but a box-geometry assertion can, and intrinsic
+grid/flex sizing is where engines actually disagree. 468 route renders, 33s.
 
 `pnpm test:e2e` always rebuilds — the Playwright `webServer` command is
 `build && preview` and `reuseExistingServer` is off, because reusing a running

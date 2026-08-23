@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { AxeBuilder } from '@axe-core/playwright';
+import { ALL_WIDTHS } from '#lib/testing/breakpoints';
 
 /**
  * Global shell guarantees. Brief §21, §69, §83, §87, §120.
@@ -270,8 +271,24 @@ async function cumulativeLayoutShift(page: Page, route: string): Promise<number>
 }
 
 test.describe('layout stability', () => {
-	// The brief's §82 widths, sampled at the four the design system pivots on.
-	for (const width of [390, 768, 1440, 2560]) {
+	/**
+	 * Chromium-only, and this is a correction rather than a convenience.
+	 *
+	 * `layout-shift` is not in `PerformanceObserver.supportedEntryTypes` in
+	 * Firefox or WebKit — verified by launching all three engines and reading the
+	 * list. Without this skip the observer below records nothing, `total` stays 0
+	 * and the assertion passes without measuring anything. These tests were
+	 * running green in the firefox, webkit and mobile projects (the iPhone 14
+	 * descriptor defaults to WebKit) on exactly that basis.
+	 *
+	 * Same reasoning as the CDP throttling suite below, which was already scoped
+	 * this way.
+	 */
+	test.skip(({ browserName }) => browserName !== 'chromium', 'layout-shift is Chromium-only');
+
+	// The full §82 set plus the narrow widths, from the shared list. Previously
+	// four widths, of which only two were §82 widths at all.
+	for (const width of ALL_WIDTHS) {
 		test(`CLS is zero at ${width}px`, async ({ page }) => {
 			await page.setViewportSize({ width, height: 900 });
 			const cls = await cumulativeLayoutShift(page, '/');
