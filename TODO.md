@@ -25,36 +25,6 @@ is now fixed by version floors in `pnpm-workspace.yaml`. Both `pnpm audit` and
 
 **Blocks:** nothing. Revisit if extract-zip ever ships 2.0.2.
 
-### The visual baselines do not cover scroll-revealed content nested inside a card
-
-**Not user-facing, and pre-existing** — recorded because it is a blind spot in a
-gate, and because the next person to see it will otherwise think it is a bug in
-the page.
-
-`ServiceCard.svelte` renders `ul.capabilities > li` chips ("Product
-architecture", "Web applications", …). In every committed baseline, on BOTH
-platforms, those chips occupy their layout box and paint nothing.
-
-**Measured, not inferred.** `getComputedStyle` on `.capabilities li` after load
-reports `opacity: 0`, identically with and without `visual.stylesheet.css`
-injected — so the harness stylesheet is not the cause. The chips are revealed on
-scroll, they sit below the fold, and a `fullPage: true` capture never scrolls, so
-their ScrollTrigger never fires. Scroll to them in a real browser and they
-render correctly.
-
-The mechanism is that `+page.svelte` attaches `reveal({ children: 'li' })` to
-`ul.cards`, which matches every descendant `li` — including the chips nested
-inside each card — not just the cards themselves. `visual.stylesheet.css` pins
-`.cards > li` back to `opacity: 1`, and the child combinator means the nested
-chips are not covered.
-
-**What it costs:** a change to those chips cannot fail the visual suite.
-
-**Fixing it** means either narrowing the reveal to `:scope > li` or adding the
-nested selectors to the pin list. Both change animation behaviour or every
-baseline on two platforms, so neither belongs in a change that was about the
-mobile grid. Left deliberately for its own pass.
-
 ### `layout-shift` is a Chromium-only API
 
 **Not a gap so much as a correction, recorded so it is not "fixed" back.**
@@ -172,6 +142,33 @@ and either gets built.
 ---
 
 ## Closed
+
+- **`reveal()` was staggering 61 elements nobody asked for, and the baselines
+  covered a blank rectangle because of it.**
+
+  `reveal({ children })` matches with `querySelectorAll`, which is a DESCENDANT
+  query, and four call sites passed a bare `'li'`. `ul.cards` therefore matched
+  42 elements where 6 were intended — each service card contains a
+  `ul.capabilities` of chips — and `ol.process` matched 30 where 5 were
+  intended, via `ul.outputs`. 61 nested elements carried a tween and a
+  ScrollTrigger that were never meant for them.
+
+  The visible consequence was in the gate rather than the page. Those nested
+  elements sat at `opacity: 0` in EVERY committed baseline on BOTH platforms,
+  because `visual.stylesheet.css` pins `.cards > li` — a child combinator — and
+  a `fullPage` capture never scrolls, so their trigger never fired. Measured
+  with `getComputedStyle`: `opacity: 0` identically with and without the harness
+  stylesheet, which is what ruled the stylesheet out as the cause. The chips
+  always rendered correctly for a real visitor who scrolled to them.
+
+  Every `children: 'li'` is now `':scope > li'`, matching the `':scope > *'`
+  idiom four other call sites already used. The chips and process outputs render
+  at `opacity: 1` in the capture context and appear in the baselines for the
+  first time — `home`, `home-mobile`, `home-tablet` and `home-wide` changed on
+  both platforms, which is exactly the four views that draw those sections.
+
+  `motion.e2e.ts` still passes 14/14, including the three specs that count
+  ScrollTriggers and SplitText instances across navigation.
 
 - **Responsive coverage of the brief's §82 widths** — `playwright.config.ts` had
   documented seven enterprise widths (820, 1024, 1280, 1440, 1728, 1920, 2560)
