@@ -142,7 +142,7 @@
 			</div>
 		</div>
 
-		<ul class="cards" role="list" {@attach reveal({ children: 'li', stagger: 0.13 })}>
+		<ul class="cards" role="list" {@attach reveal({ children: ':scope > li', stagger: 0.13 })}>
 			{#each SERVICES as service (service.slug)}
 				<li><ServiceCard {service} /></li>
 			{/each}
@@ -165,7 +165,7 @@
 			</div>
 		</div>
 
-		<ul class="projects" role="list" {@attach reveal({ children: 'li', stagger: 0.17 })}>
+		<ul class="projects" role="list" {@attach reveal({ children: ':scope > li', stagger: 0.17 })}>
 			{#each featured as study, index (study.slug)}
 				<li><ProjectCard {study} {index} /></li>
 			{/each}
@@ -211,7 +211,7 @@
 <!-- 6 · Principles ──────────────────────────────────────────────────────── -->
 <section class="section section--flush-top" data-surface="light">
 	<div class="container">
-		<ol class="principles" role="list" {@attach reveal({ children: 'li', stagger: 0.1 })}>
+		<ol class="principles" role="list" {@attach reveal({ children: ':scope > li', stagger: 0.1 })}>
 			{#each PRINCIPLES as principle (principle.number)}
 				<li class="principle">
 					<span class="principle-number" aria-hidden="true">{principle.number}</span>
@@ -240,7 +240,7 @@
 			</div>
 		</div>
 
-		<ol class="process" role="list" {@attach reveal({ children: 'li', stagger: 0.13 })}>
+		<ol class="process" role="list" {@attach reveal({ children: ':scope > li', stagger: 0.13 })}>
 			{#each PROCESS as step (step.number)}
 				<li class="step">
 					<div class="step-head">
@@ -277,7 +277,11 @@
 					and they should read as one texture arriving rather than as eight
 					separate items.
 				-->
-				<ul class="labels" role="list" {@attach reveal({ children: 'li', stagger: 0.032 })}>
+				<ul
+					class="labels"
+					role="list"
+					{@attach reveal({ children: ':scope > li', stagger: 0.032 })}
+				>
 					{#each TECHNOLOGY.labels as label (label)}
 						<li>{label}</li>
 					{/each}
@@ -326,7 +330,7 @@
 		<ul
 			class="articles"
 			role="list"
-			{@attach reveal({ children: 'li', stagger: 0.17, distance: 10 })}
+			{@attach reveal({ children: ':scope > li', stagger: 0.17, distance: 10 })}
 		>
 			{#each latestInsights as insight (insight.slug)}
 				<li><ArticleCard {insight} /></li>

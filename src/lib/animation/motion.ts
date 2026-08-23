@@ -29,7 +29,23 @@ export interface RevealOptions {
 	readonly stagger?: number;
 	/** Distance travelled, in px, at the rich breakpoint. */
 	readonly distance?: number;
-	/** Selector for the children to stagger. Omit to animate the element itself. */
+	/**
+	 * Selector for the children to stagger. Omit to animate the element itself.
+	 *
+	 * Matched with `querySelectorAll`, so it is a DESCENDANT query. Write
+	 * `:scope > li`, not `li`, whenever the children can themselves contain the
+	 * same element — otherwise the tween and its ScrollTrigger are applied to
+	 * every nested match as well.
+	 *
+	 * That is not hypothetical. `ul.cards` with `children: 'li'` matched 42
+	 * elements where 6 were intended, because each service card contains a
+	 * `ul.capabilities` of chips; `ol.process` matched 30 where 5 were intended,
+	 * via `ul.outputs`. 61 elements carried a tween nobody asked for, and because
+	 * the nested ones were never pinned by `visual.stylesheet.css` — which pins
+	 * `.cards > li`, a child combinator — they sat at `opacity: 0` in every
+	 * committed baseline on both platforms. The screenshots covered a blank
+	 * rectangle where the chips are.
+	 */
 	readonly children?: string;
 	/** Fraction of the viewport at which it fires. */
 	readonly start?: string;
